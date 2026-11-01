@@ -39,6 +39,7 @@ import {
 import { Restaurant, Category, Product, CartItem } from './types';
 import { getSupabaseClient, getSupabaseConfig, saveSupabaseConfig } from './supabase/client';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
+import { RestaurantOwnerDashboard } from './components/RestaurantOwnerDashboard';
 
 // مطاعم نموذجية لإظهار كيف يعمل نظام الـ Multi-tenant
 const SAMPLE_RESTAURANTS: Restaurant[] = [
@@ -153,7 +154,7 @@ const SAMPLE_PRODUCTS: Product[] = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'superadmin' | 'simulator' | 'guide'>('superadmin');
+  const [activeTab, setActiveTab] = useState<'overview' | 'superadmin' | 'owner' | 'simulator' | 'guide'>('owner');
   
   // حالة الاتصال بقاعدة بيانات Supabase
   const [dbConfig, setDbConfig] = useState(getSupabaseConfig());
@@ -385,6 +386,17 @@ export default function App() {
         {/* أشرطة التنقل على الهواتف - Mobile-Friendly Tabs */}
         <div className="max-w-6xl mx-auto mt-3 flex items-center gap-1 md:gap-2 border-t border-slate-800/80 pt-2 overflow-x-auto no-scrollbar">
           <button
+            onClick={() => setActiveTab('owner')}
+            className={`py-2 px-3 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 transition-all shrink-0 ${
+              activeTab === 'owner'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <ChefHat className="w-4 h-4 text-amber-400" />
+            <span>لوحة صاحب المطعم (Dashboard)</span>
+          </button>
+          <button
             onClick={() => setActiveTab('superadmin')}
             className={`py-2 px-3 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 transition-all shrink-0 ${
               activeTab === 'superadmin'
@@ -404,7 +416,7 @@ export default function App() {
             }`}
           >
             <Smartphone className="w-4 h-4 text-emerald-400" />
-            <span>تجربة المنيو الحي (محاكي)</span>
+            <span>منيو الزبون وسلة الطلب</span>
           </button>
           <button
             onClick={() => setActiveTab('overview')}
@@ -426,7 +438,7 @@ export default function App() {
             }`}
           >
             <CheckCircle className="w-4 h-4 text-blue-400" />
-            <span>الخريطة والمراحل</span>
+            <span>المراحل</span>
           </button>
         </div>
       </header>
@@ -434,6 +446,24 @@ export default function App() {
       {/* المحتوى الرئيسي */}
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 space-y-6">
         
+        {/* ===================== التبويب: لوحة صاحب المطعم Restaurant Owner ===================== */}
+        {activeTab === 'owner' && (
+          <RestaurantOwnerDashboard
+            restaurant={selectedRestaurant}
+            categories={categoriesList}
+            products={productsList}
+            onUpdateRestaurant={(updated) => {
+              setSelectedRestaurant(updated);
+              setRestaurantsList((prev) =>
+                prev.map((r) => (r.id === updated.id ? updated : r))
+              );
+            }}
+            onUpdateCategories={setCategoriesList}
+            onUpdateProducts={setProductsList}
+            onPreviewMenu={() => setActiveTab('simulator')}
+          />
+        )}
+
         {/* ===================== التبويب: لوحة المدير العام Super Admin ===================== */}
         {activeTab === 'superadmin' && (
           <SuperAdminPanel

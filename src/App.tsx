@@ -40,6 +40,7 @@ import { Restaurant, Category, Product, CartItem } from './types';
 import { getSupabaseClient, getSupabaseConfig, saveSupabaseConfig } from './supabase/client';
 import { SuperAdminPanel } from './components/SuperAdminPanel';
 import { RestaurantOwnerDashboard } from './components/RestaurantOwnerDashboard';
+import { CustomerMenuView } from './components/CustomerMenuView';
 
 // مطاعم نموذجية لإظهار كيف يعمل نظام الـ Multi-tenant
 const SAMPLE_RESTAURANTS: Restaurant[] = [
@@ -601,378 +602,55 @@ export default function App() {
           </div>
         )}
 
-        {/* ===================== التبويب 2: محاكي المنيو الحي ===================== */}
+        {/* ===================== التبويب 2: محاكي المنيو وسلة الواتساب للزبون ===================== */}
         {activeTab === 'simulator' && (
-          <div className="space-y-6 animate-fadeIn">
-            {/* شريط التحكم بالمحاكي */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <Store className="w-5 h-5 text-amber-400" />
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400 block">اختر المطعم لعرض المنيو:</span>
-                    {dbConfig.isConfigured && (
-                      <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.2 rounded font-bold">
-                        بيانات سحابية حية
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex gap-2 mt-1">
-                    {restaurantsList.map((r) => (
-                      <button
-                        key={r.id}
-                        onClick={() => setSelectedRestaurant(r)}
-                        className={`text-xs px-3 py-1.5 rounded-lg font-bold transition-all ${
-                          selectedRestaurant.id === r.id
-                            ? 'bg-amber-500 text-slate-950'
-                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                        }`}
-                      >
-                        {r.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* تبديل القالب */}
+          <div className="space-y-4 animate-fadeIn">
+            {/* شريط اختيار المطعم للمعاينة */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400">نوع القالب:</span>
-                <button
-                  onClick={() => setActiveTemplate('modern-card')}
-                  className={`text-xs px-2.5 py-1.5 rounded-lg font-medium flex items-center gap-1 ${
-                    activeTemplate === 'modern-card'
-                      ? 'bg-slate-700 text-white border border-slate-600'
-                      : 'bg-slate-900 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <span>بطاقات مصورة (Modern)</span>
-                </button>
-                <button
-                  onClick={() => setActiveTemplate('minimal-list')}
-                  className={`text-xs px-2.5 py-1.5 rounded-lg font-medium flex items-center gap-1 ${
-                    activeTemplate === 'minimal-list'
-                      ? 'bg-slate-700 text-white border border-slate-600'
-                      : 'bg-slate-900 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <span>قائمة أنيقة (Minimal)</span>
-                </button>
-              </div>
-            </div>
-
-            {/* هيكل المحاكي: مظهر هاتف ذكي للزبون */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              
-              {/* شاشة الهاتف (منيو الزبون) */}
-              <div className="lg:col-span-7 flex justify-center">
-                <div
-                  className="w-full max-w-sm rounded-[36px] bg-slate-900 border-4 shadow-2xl overflow-hidden flex flex-col min-h-[640px] max-h-[750px] transition-all"
-                  style={{ borderColor: selectedRestaurant.themeColor || '#ea580c' }}
-                >
-                  
-                  {/* كاميرا الهاتف وحواف الشاشة */}
-                  <div className="bg-slate-950 px-6 py-2 flex items-center justify-between text-[11px] text-slate-400 border-b border-slate-800">
-                    <span>12:54</span>
-                    <div className="w-20 h-4 bg-slate-900 rounded-full mx-auto"></div>
-                    <span>5G 98%</span>
-                  </div>
-
-                  {/* غلاف المطعم ومعلوماته */}
-                  <div className="relative h-32 bg-slate-800 overflow-hidden">
-                    <img
-                      src={selectedRestaurant.coverUrl || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800'}
-                      alt="غلاف المطعم"
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent"></div>
-                    <div className="absolute bottom-2 right-3 left-3 flex items-center gap-2.5">
-                      <img
-                        src={selectedRestaurant.logoUrl || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=150'}
-                        alt="لوغو المطعم"
-                        className="w-12 h-12 rounded-xl border-2 border-white/30 object-cover shadow-md"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-black text-sm text-white truncate">{selectedRestaurant.name}</h4>
-                        <p
-                          className="text-[11px] font-bold truncate"
-                          style={{ color: selectedRestaurant.themeColor || '#ea580c' }}
-                        >
-                          {selectedRestaurant.tagline || 'أشهى المأكولات والمشروبات'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* شريط الأقسام الملون بالثيم */}
-                  <div className="bg-slate-950 px-3 py-2 flex gap-2 overflow-x-auto no-scrollbar border-b border-slate-800">
+                <Store className="w-5 h-5 text-amber-400" />
+                <span className="text-xs font-bold text-slate-300">اختر المطعم:</span>
+                <div className="flex gap-1.5 flex-wrap">
+                  {restaurantsList.map((r) => (
                     <button
-                      onClick={() => setSelectedCategory('all')}
-                      className={`text-xs px-3 py-1 rounded-full whitespace-nowrap font-bold transition-all ${
-                        selectedCategory === 'all'
-                          ? 'shadow-sm text-white'
-                          : 'bg-slate-800 text-slate-400 hover:text-white'
+                      key={r.id}
+                      onClick={() => setSelectedRestaurant(r)}
+                      className={`text-xs px-3 py-1.5 rounded-xl font-bold transition-all ${
+                        selectedRestaurant.id === r.id
+                          ? 'bg-amber-500 text-slate-950 shadow-md'
+                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                       }`}
-                      style={{
-                        backgroundColor: selectedCategory === 'all' ? selectedRestaurant.themeColor : undefined,
-                      }}
                     >
-                      الكل
+                      {r.name}
                     </button>
-                    {categoriesList
-                      .filter((c) => c.restaurantId === selectedRestaurant.id || !c.restaurantId)
-                      .map((cat) => {
-                        const isCatSelected = selectedCategory === cat.id;
-                        return (
-                          <button
-                            key={cat.id}
-                            onClick={() => setSelectedCategory(cat.id)}
-                            className={`text-xs px-3 py-1 rounded-full whitespace-nowrap font-bold transition-all ${
-                              isCatSelected
-                                ? 'shadow-sm text-white'
-                                : 'bg-slate-800 text-slate-400 hover:text-white'
-                            }`}
-                            style={{
-                              backgroundColor: isCatSelected ? selectedRestaurant.themeColor : undefined,
-                            }}
-                          >
-                            {cat.name}
-                          </button>
-                        );
-                      })}
-                  </div>
-
-                  {/* قائمة الوجبات (تتغير حسب القالب واللون المختار) */}
-                  <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-950">
-                    {productsList
-                      .filter(
-                        (p) =>
-                          (p.restaurantId === selectedRestaurant.id || !p.restaurantId) &&
-                          (selectedCategory === 'all' || p.categoryId === selectedCategory)
-                      )
-                      .map((product) => {
-                        const isModern = (selectedRestaurant.templateId || activeTemplate) === 'modern-card';
-                        return (
-                          <div
-                            key={product.id}
-                            className={
-                              isModern
-                                ? 'bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex gap-3 p-2.5 items-center hover:border-slate-700 transition-all'
-                                : 'bg-slate-900/60 border-b border-slate-800 p-2.5 flex justify-between items-center rounded-lg'
-                            }
-                          >
-                            {isModern && product.imageUrl && (
-                              <img
-                                src={product.imageUrl}
-                                alt={product.name}
-                                className="w-16 h-16 rounded-lg object-cover shrink-0"
-                              />
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <h5 className="font-bold text-xs text-white truncate">{product.name}</h5>
-                                {product.isPopular && (
-                                  <span
-                                    className="text-[9px] px-1.5 py-0.2 rounded font-bold text-white shadow-xs"
-                                    style={{ backgroundColor: selectedRestaurant.themeColor }}
-                                  >
-                                    الأكثر طلباً
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">{product.description}</p>
-                              <div
-                                className="font-black text-xs mt-1"
-                                style={{ color: selectedRestaurant.themeColor }}
-                              >
-                                {product.price.toLocaleString()} {selectedRestaurant.currency}
-                              </div>
-                            </div>
-
-                            <button
-                              onClick={() => addToCart(product)}
-                              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-md transition-transform active:scale-90 text-white"
-                              style={{ backgroundColor: selectedRestaurant.themeColor }}
-                              title="إضافة للسلة"
-                            >
-                              <Plus className="w-4 h-4 stroke-[3]" />
-                            </button>
-                          </div>
-                        );
-                      })}
-                  </div>
-
-                  {/* الشريط السفلي داخل المنيو: السلة السريعة */}
-                  <div className="bg-slate-900 p-3 border-t border-slate-800 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="relative">
-                        <ShoppingBag
-                          className="w-5 h-5"
-                          style={{ color: selectedRestaurant.themeColor }}
-                        />
-                        {totalItemsCount > 0 && (
-                          <span
-                            className="absolute -top-1.5 -right-1.5 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-sm"
-                            style={{ backgroundColor: selectedRestaurant.themeColor }}
-                          >
-                            {totalItemsCount}
-                          </span>
-                        )}
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-slate-400 block">المجموع:</span>
-                        <span className="text-xs font-black text-white">
-                          {totalAmount.toLocaleString()} {selectedRestaurant.currency}
-                        </span>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        const el = document.getElementById('order-summary');
-                        el?.scrollIntoView({ behavior: 'smooth' });
-                      }}
-                      className="text-white font-black text-xs px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-md transition-transform active:scale-95"
-                      style={{ backgroundColor: selectedRestaurant.themeColor }}
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                      <span>إتمام الطلب</span>
-                    </button>
-                  </div>
+                  ))}
                 </div>
               </div>
 
-              {/* تفاصيل السلة ورسالة الواتساب المولدة تلقائياً */}
-              <div id="order-summary" className="lg:col-span-5 space-y-4">
-                
-                {/* بطاقة السلة وإعدادات الزبون */}
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                    <h4 className="font-bold text-sm text-white flex items-center gap-2">
-                      <ShoppingBag className="w-4 h-4 text-amber-400" />
-                      <span>محتويات سلة الزبون ({totalItemsCount} عناصر)</span>
-                    </h4>
-                    <span className="text-xs text-amber-400 font-bold">
-                      {totalAmount.toLocaleString()} {selectedRestaurant.currency}
-                    </span>
-                  </div>
-
-                  {cart.length === 0 ? (
-                    <div className="py-6 text-center text-xs text-slate-500">
-                      السلة فارغة، اضغط على زر (+) في أي وجبة لإضافتها.
-                    </div>
-                  ) : (
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {cart.map((item) => (
-                        <div
-                          key={item.product.id}
-                          className="flex items-center justify-between p-2 rounded-lg bg-slate-950 border border-slate-800 text-xs"
-                        >
-                          <div className="flex-1 min-w-0 pr-2">
-                            <div className="font-bold text-white truncate">{item.product.name}</div>
-                            <div className="text-[11px] text-slate-400">
-                              {(item.product.price * item.quantity).toLocaleString()} {selectedRestaurant.currency}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => updateQuantity(item.product.id, -1)}
-                              className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="font-bold text-white w-5 text-center">{item.quantity}</span>
-                            <button
-                              onClick={() => updateQuantity(item.product.id, 1)}
-                              className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* بيانات التوصيل */}
-                  <div className="space-y-2 pt-2 border-t border-slate-800">
-                    <div>
-                      <label className="text-[11px] text-slate-400 block mb-1">اسم الزبون:</label>
-                      <input
-                        type="text"
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] text-slate-400 block mb-1">عنوان التوصيل أو رقم الطاولة:</label>
-                      <input
-                        type="text"
-                        value={customerAddress}
-                        onChange={(e) => setCustomerAddress(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] text-slate-400 block mb-1">ملاحظات إضافية:</label>
-                      <input
-                        type="text"
-                        value={customerNotes}
-                        onChange={(e) => setCustomerNotes(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* معاينة رسالة الواتساب المولدة آلياً */}
-                <div className="bg-emerald-950/30 border border-emerald-900/60 rounded-2xl p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                      <Phone className="w-3.5 h-3.5" />
-                      <span>شكل الرسالة التلقائية في واتساب المطعم:</span>
-                    </span>
-                    <button
-                      onClick={() => copyToClipboard(generateWhatsAppMessage(), 'whatsapp-msg')}
-                      className="text-[11px] text-emerald-300 hover:text-white bg-emerald-900/40 px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all"
-                    >
-                      {copiedText === 'whatsapp-msg' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                      <span>نسخ النص</span>
-                    </button>
-                  </div>
-
-                  <div className="bg-slate-950 p-3 rounded-xl border border-emerald-900/40 text-xs font-mono text-emerald-200 whitespace-pre-line leading-relaxed">
-                    {generateWhatsAppMessage()}
-                  </div>
-
-                  {/* زر تجربة إرسال الواتساب الفعلي */}
-                  <a
-                    href={`https://wa.me/${selectedRestaurant.phoneWhatsapp}?text=${encodeURIComponent(generateWhatsAppMessage())}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all"
-                  >
-                    <Send className="w-4 h-4" />
-                    <span>تجربة فتح الواتساب الحقيقي للطلب</span>
-                  </a>
-                </div>
-
-                {/* كود الـ QR الخاص بهذا المطعم */}
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center gap-4">
-                  <div className="w-16 h-16 bg-white p-1 rounded-xl flex items-center justify-center shadow-md">
-                    <QrCode className="w-14 h-14 text-slate-950" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h5 className="font-bold text-xs text-white">باركود QR لطاولات {selectedRestaurant.name}</h5>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      يُطبع ويلصق على الطاولات. عند مسحه بالموبايل ينفتح منيو هذا المطعم مباشرة.
-                    </p>
-                  </div>
-                </div>
-
+              {/* مؤشر القالب الحالي ولون الثيم */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400">القالب:</span>
+                <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-800 text-white font-mono border border-slate-700">
+                  {selectedRestaurant.templateId === 'minimal-list' ? 'Minimal List (مبسط)' : 'Modern Cards (مصور)'}
+                </span>
+                <span
+                  className="w-4 h-4 rounded-full border border-white shadow-sm"
+                  style={{ backgroundColor: selectedRestaurant.themeColor || '#ea580c' }}
+                  title="لون الثيم المعتمد"
+                />
               </div>
             </div>
+
+            {/* مكوّن منيو الزبون المتكامل مع السلة والبحث والواتساب */}
+            <CustomerMenuView
+              restaurant={selectedRestaurant}
+              categories={categoriesList}
+              products={productsList}
+              cart={cart}
+              onAddToCart={addToCart}
+              onUpdateQuantity={updateQuantity}
+              onClearCart={() => setCart([])}
+            />
           </div>
         )}
 

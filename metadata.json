@@ -1,6 +1,6 @@
 {
-  "name": "MENU IRAQ - Restaurant SaaS Platform",
-  "description": "منصة سحابية متكاملة لإنشاء وإدارة قوائم الطعام الإلكترونية والباركود وطلبات الواتساب لمطاعم العراق.",
+  "name": "MENU IRAQ - Smart Digital Menu Platform",
+  "description": "منصة سحابية متكاملة لإنشاء وإدارة قوائم المنيو الإلكتروني والباركود وطلبات الواتساب للمطاعم والكافيهات في العراق.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

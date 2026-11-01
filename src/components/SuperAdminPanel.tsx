@@ -277,8 +277,8 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
               المالك الرئيسي للمنصة (Super Admin)
             </span>
           </div>
-          <h2 className="text-xl md:text-2xl font-black text-white mt-1">لوحة إدارة مطاعم العراق</h2>
-          <p className="text-xs text-slate-400">إضافة المطاعم، توليد الروابط فورياً، ومتابعة الاشتراكات</p>
+          <h2 className="text-xl md:text-2xl font-black text-white mt-1">لوحة إدارة المنيو الإلكتروني</h2>
+          <p className="text-xs text-slate-400">إدارة المطاعم والكافيهات في العراق، توليد الروابط والباركود، ومتابعة الاشتراكات</p>
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -287,7 +287,7 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
             className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4" />
-            <span>إضافة مطعم جديد</span>
+            <span>إضافة منيو جديد (مطعم أو كافيه)</span>
           </button>
           <button
             onClick={handleAdminLogout}
@@ -487,7 +487,7 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <Store className="w-5 h-5 text-amber-400" />
-                <h3 className="font-bold text-base text-white">إضافة مطعم جديد إلى MENU IRAQ</h3>
+                <h3 className="font-bold text-base text-white">إضافة منيو جديد (مطعم أو كافيه) إلى MENU IRAQ</h3>
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
@@ -499,10 +499,10 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
 
             <form onSubmit={handleCreateRestaurant} className="space-y-3 text-xs">
               <div>
-                <label className="text-slate-300 block mb-1 font-bold">اسم المطعم في العراق:</label>
+                <label className="text-slate-300 block mb-1 font-bold">اسم المطعم أو الكافيه:</label>
                 <input
                   type="text"
-                  placeholder="مثال: كباب المنصور الملكي"
+                  placeholder="مثال: كافيه البستان أو كباب المنصور الملكي"
                   value={newRestName}
                   onChange={(e) => handleNameChange(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"

@@ -53,7 +53,7 @@ export interface CustomerOrderData {
   customerName: string;
   customerPhone?: string;
   deliveryAddress: string;
-  orderType: 'delivery' | 'dine_in' | 'takeaway';
+  orderType: 'dine_in' | 'delivery';
   tableNumber?: string;
   notes?: string;
 }

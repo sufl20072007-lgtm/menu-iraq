@@ -56,13 +56,13 @@ export const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({
   const [showQrModal, setShowQrModal] = useState<boolean>(false);
   const [copiedUrl, setCopiedUrl] = useState<boolean>(false);
 
-  // بيانات استمارة الطلب
+  // بيانات استمارة الطلب (افتراضياً طلب طاولة للمسح السريع داخل الصالة)
   const [orderData, setOrderData] = useState<CustomerOrderData>({
     customerName: '',
     customerPhone: '',
     deliveryAddress: '',
-    orderType: 'delivery',
-    tableNumber: '4',
+    orderType: 'dine_in',
+    tableNumber: '1',
     notes: '',
   });
 
@@ -70,12 +70,12 @@ export const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({
   const totalAmount = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const totalItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  // تصفية الوجبات حسب المطعم والقسم والبحث
+  // تصفية الوجبات والمشروبات حسب المطعم أو الكافيه والقسم والبحث
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       const belongsToRest = p.restaurantId === restaurant.id || !p.restaurantId;
       if (!belongsToRest) return false;
-      if (!p.isAvailable) return false; // الوجبات المتوفرة فقط
+      if (!p.isAvailable) return false; // العناصر المتوفرة فقط
 
       const matchesCategory = selectedCategory === 'all' || p.categoryId === selectedCategory;
       const matchesSearch =
@@ -88,15 +88,14 @@ export const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({
 
   // توليد رسالة الواتساب المنسقة باحترافية
   const generateWhatsAppMessage = () => {
-    let msg = `*طلب جديد عبر منيو العراق الإلكتروني 🍽️*\n`;
-    msg += `المطعم: *${restaurant.name}*\n`;
-    msg += `نوع الطلب: ${
-      orderData.orderType === 'dine_in'
-        ? `*داخل الصالة (طاولة رقم ${orderData.tableNumber || 'غير محدد'})* 🍽️`
-        : orderData.orderType === 'takeaway'
-        ? `*استلام سفري من المحل* 🥡`
-        : `*توصيل دليفري للبيت* 🛵`
-    }\n`;
+    let msg = `*طلب جديد عبر المنيو الإلكتروني 🍽️☕*\n`;
+    msg += `المحل: *${restaurant.name}*\n`;
+    
+    if (orderData.orderType === 'dine_in') {
+      msg += `📍 *نوع الطلب:* *داخل الصالة - طاولة رقم (${orderData.tableNumber || '1'})* 🍽️\n`;
+    } else {
+      msg += `🛵 *نوع الطلب:* *توصيل دليفري*\n`;
+    }
     msg += `--------------------------------\n`;
 
     cart.forEach((item, index) => {
@@ -108,20 +107,24 @@ export const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({
     msg += `--------------------------------\n`;
     msg += `*المجموع الكلي:* *${totalAmount.toLocaleString()} ${restaurant.currency}*\n\n`;
 
-    if (orderData.customerName) {
-      msg += `👤 *اسم الزبون:* ${orderData.customerName}\n`;
-    }
-    if (orderData.customerPhone) {
-      msg += `📱 *رقم الهاتف:* ${orderData.customerPhone}\n`;
-    }
-    if (orderData.orderType === 'delivery' && orderData.deliveryAddress) {
-      msg += `📍 *عنوان التوصيل:* ${orderData.deliveryAddress}\n`;
-    }
-    if (orderData.notes) {
-      msg += `📝 *ملاحظات خاصة:* ${orderData.notes}\n`;
+    if (orderData.orderType === 'dine_in') {
+      // طلب الطاولة مبسط جداً بدون طلب رقم هاتف
+      if (orderData.notes) {
+        msg += `📝 *ملاحظات الطاولة:* ${orderData.notes}\n`;
+      }
+    } else {
+      // طلب التوصيل دليفري
+      if (orderData.customerName) {
+        msg += `👤 *اسم الزبون:* ${orderData.customerName}\n`;
+      }
+      msg += `📱 *رقم الهاتف:* ${orderData.customerPhone || 'غير محدد'}\n`;
+      msg += `📍 *عنوان التوصيل:* ${orderData.deliveryAddress || 'غير محدد'}\n`;
+      if (orderData.notes) {
+        msg += `📝 *ملاحظات التوصيل:* ${orderData.notes}\n`;
+      }
     }
 
-    msg += `\n_تم الطلب عبر منصة MENU IRAQ_`;
+    msg += `\n_تم الطلب عبر المنيو الإلكتروني الذكي_`;
     return msg;
   };
 
@@ -498,124 +501,159 @@ export const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({
                 ))}
               </div>
 
-              {/* اختيار نوع الطلب */}
+              {/* اختيار نوع الطلب (داخل الصالة أو توصيل فقط) */}
               <div className="space-y-1.5 pt-2 border-t border-slate-800">
-                <label className="text-xs font-bold text-slate-300 block">نوع الطلب:</label>
-                <div className="grid grid-cols-3 gap-2">
+                <label className="text-xs font-bold text-slate-300 block">اختر نوع طلبك:</label>
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setOrderData({ ...orderData, orderType: 'dine_in' })}
-                    className={`p-2 rounded-xl border text-center transition-all text-xs font-bold ${
+                    className={`py-2.5 px-3 rounded-xl border text-center transition-all text-xs font-bold flex items-center justify-center gap-1.5 ${
                       orderData.orderType === 'dine_in'
-                        ? 'text-white shadow-md'
-                        : 'bg-slate-950 text-slate-400 border-slate-800'
+                        ? 'text-white shadow-lg ring-1 ring-white/20'
+                        : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
                     }`}
                     style={{
                       backgroundColor: orderData.orderType === 'dine_in' ? themeColor : undefined,
                       borderColor: orderData.orderType === 'dine_in' ? themeColor : undefined,
                     }}
                   >
-                    🍽️ داخل الصالة
+                    <span>🍽️</span>
+                    <span>داخل الصالة (طاولة)</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setOrderData({ ...orderData, orderType: 'delivery' })}
-                    className={`p-2 rounded-xl border text-center transition-all text-xs font-bold ${
+                    className={`py-2.5 px-3 rounded-xl border text-center transition-all text-xs font-bold flex items-center justify-center gap-1.5 ${
                       orderData.orderType === 'delivery'
-                        ? 'text-white shadow-md'
-                        : 'bg-slate-950 text-slate-400 border-slate-800'
+                        ? 'text-white shadow-lg ring-1 ring-white/20'
+                        : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
                     }`}
                     style={{
                       backgroundColor: orderData.orderType === 'delivery' ? themeColor : undefined,
                       borderColor: orderData.orderType === 'delivery' ? themeColor : undefined,
                     }}
                   >
-                    🛵 دليفري
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setOrderData({ ...orderData, orderType: 'takeaway' })}
-                    className={`p-2 rounded-xl border text-center transition-all text-xs font-bold ${
-                      orderData.orderType === 'takeaway'
-                        ? 'text-white shadow-md'
-                        : 'bg-slate-950 text-slate-400 border-slate-800'
-                    }`}
-                    style={{
-                      backgroundColor: orderData.orderType === 'takeaway' ? themeColor : undefined,
-                      borderColor: orderData.orderType === 'takeaway' ? themeColor : undefined,
-                    }}
-                  >
-                    🥡 سفري
+                    <span>🛵</span>
+                    <span>توصيل دليفري</span>
                   </button>
                 </div>
               </div>
 
-              {/* بيانات الزبون حسب نوع الطلب */}
-              <div className="space-y-2.5 text-xs">
+              {/* استمارة الطلب المبسطة حسب نوع الطلب */}
+              <div className="space-y-3 text-xs">
                 {orderData.orderType === 'dine_in' ? (
-                  <div>
-                    <label className="text-slate-400 block mb-1 font-bold">رقم الطاولة في المطعم:</label>
-                    <input
-                      type="text"
-                      placeholder="مثلاً: طاولة 5"
-                      value={orderData.tableNumber}
-                      onChange={(e) => setOrderData({ ...orderData, tableNumber: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none"
-                    />
+                  // واجهة داخل الصالة: فائقة البساطة والسلاسة بلمسة واحدة بدون رقم هاتف
+                  <div className="space-y-3 bg-slate-950/90 p-3.5 rounded-2xl border border-slate-800/80">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-white font-bold text-xs flex items-center gap-1.5">
+                          <span>🍽️ اختر رقم طاولتك:</span>
+                        </label>
+                        <span className="text-xs text-amber-400 font-mono font-black bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
+                          طاولة: {orderData.tableNumber || '1'}
+                        </span>
+                      </div>
+                      
+                      {/* أزرار سريعة لأرقام الطاولات بلمسة واحدة */}
+                      <div className="grid grid-cols-6 gap-1.5 mb-2.5">
+                        {['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'].map((num) => (
+                          <button
+                            key={num}
+                            type="button"
+                            onClick={() => setOrderData({ ...orderData, tableNumber: num })}
+                            className={`py-2 rounded-xl font-black text-xs transition-all ${
+                              orderData.tableNumber === num
+                                ? 'text-white shadow-md scale-105 ring-2 ring-white/30'
+                                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                            }`}
+                            style={{
+                              backgroundColor: orderData.tableNumber === num ? themeColor : undefined,
+                            }}
+                          >
+                            {num}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-slate-400 shrink-0">أو رقم طاولة أخرى:</span>
+                        <input
+                          type="text"
+                          placeholder="مثلاً: 14، خارجي، VIP..."
+                          value={orderData.tableNumber}
+                          onChange={(e) => setOrderData({ ...orderData, tableNumber: e.target.value })}
+                          className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5 text-white text-xs font-bold text-center focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-slate-400 block mb-1">ملاحظات على الطلب (اختياري):</label>
+                      <input
+                        type="text"
+                        placeholder="مثلاً: بدون شكر، زيادة ثلج، صمون مقسب..."
+                        value={orderData.notes}
+                        onChange={(e) => setOrderData({ ...orderData, notes: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
                   </div>
                 ) : (
-                  <div>
-                    <label className="text-slate-400 block mb-1 font-bold">عنوان التوصيل بالتفصيل:</label>
-                    <input
-                      type="text"
-                      placeholder="المنطقة، الشارع، أقرب نقطة دالة..."
-                      value={orderData.deliveryAddress}
-                      onChange={(e) => setOrderData({ ...orderData, deliveryAddress: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none"
-                    />
+                  // استمارة التوصيل دليفري (تحتاج العنوان والهاتف للتوصيل)
+                  <div className="space-y-2.5 bg-slate-950/90 p-3.5 rounded-2xl border border-slate-800/80">
+                    <div>
+                      <label className="text-slate-200 block mb-1 font-bold">عنوان التوصيل بالتفصيل: *</label>
+                      <input
+                        type="text"
+                        placeholder="المنطقة، الشارع، أقرب نقطة دالة أو بناية..."
+                        value={orderData.deliveryAddress}
+                        onChange={(e) => setOrderData({ ...orderData, deliveryAddress: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-slate-200 block mb-1 font-bold">رقم الهاتف: *</label>
+                        <input
+                          type="text"
+                          placeholder="0770..."
+                          value={orderData.customerPhone}
+                          onChange={(e) => setOrderData({ ...orderData, customerPhone: e.target.value })}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-slate-300 block mb-1">اسمك الكريم (اختياري):</label>
+                        <input
+                          type="text"
+                          placeholder="الاسم"
+                          value={orderData.customerName}
+                          onChange={(e) => setOrderData({ ...orderData, customerName: e.target.value })}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-slate-300 block mb-1">ملاحظات التوصيل (اختياري):</label>
+                      <input
+                        type="text"
+                        placeholder="أي تفاصيل خاصة بالسائق أو الطلب..."
+                        value={orderData.notes}
+                        onChange={(e) => setOrderData({ ...orderData, notes: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
                   </div>
                 )}
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-slate-400 block mb-1">اسمك الكريم:</label>
-                    <input
-                      type="text"
-                      placeholder="أحمد"
-                      value={orderData.customerName}
-                      onChange={(e) => setOrderData({ ...orderData, customerName: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-slate-400 block mb-1">رقم هاتفك:</label>
-                    <input
-                      type="text"
-                      placeholder="0770..."
-                      value={orderData.customerPhone}
-                      onChange={(e) => setOrderData({ ...orderData, customerPhone: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-slate-400 block mb-1">ملاحظات على الوجبات:</label>
-                  <input
-                    type="text"
-                    placeholder="بدون بصل، صمون مقسب، ثومية زيادة..."
-                    value={orderData.notes}
-                    onChange={(e) => setOrderData({ ...orderData, notes: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none"
-                  />
-                </div>
               </div>
             </div>
 
             {/* زر إرسال الطلب النهائي لواتساب */}
-            <div className="p-4 border-t border-slate-800 bg-slate-950/60 space-y-2">
+            <div className="p-4 border-t border-slate-800 bg-slate-950/80 space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-slate-400 font-bold">المجموع الكلي:</span>
                 <span className="text-base font-black text-white">
@@ -625,11 +663,15 @@ export const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({
 
               <button
                 onClick={handleSendOrder}
-                className="w-full py-3 rounded-xl text-white font-black text-xs flex items-center justify-center gap-2 shadow-xl transition-transform active:scale-95"
+                className="w-full py-3.5 rounded-xl text-white font-black text-xs md:text-sm flex items-center justify-center gap-2 shadow-xl transition-all active:scale-95 hover:opacity-95"
                 style={{ backgroundColor: '#16a34a' }} // واتساب الأخضر الرسمي
               >
                 <Send className="w-4 h-4" />
-                <span>إرسال الطلب الآن إلى واتساب المطعم ({restaurant.phoneWhatsapp})</span>
+                <span>
+                  {orderData.orderType === 'dine_in'
+                    ? `إرسال طلب طاولة (${orderData.tableNumber || '1'}) إلى واتساب 🍽️`
+                    : `إرسال طلب التوصيل إلى واتساب 🛵`}
+                </span>
               </button>
             </div>
           </div>

@@ -291,13 +291,13 @@ export const RestaurantOwnerDashboard: React.FC<RestaurantOwnerDashboardProps> =
             <div className="flex items-center gap-2">
               <h2 className="text-lg md:text-xl font-black text-white">{restaurant.name}</h2>
               <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold">
-                لوحة المطعم
+                لوحة إدارة المنيو
               </span>
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
               <span className="font-mono text-amber-400">menuiraq.com/{restaurant.slug}</span>
               <span>•</span>
-              <span>{myProducts.length} وجبة</span>
+              <span>{myProducts.length} صنف متاح</span>
               <span>•</span>
               <span>{myCategories.length} أقسام</span>
             </div>

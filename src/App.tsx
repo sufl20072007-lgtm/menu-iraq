@@ -79,6 +79,24 @@ const SAMPLE_RESTAURANTS: Restaurant[] = [
     createdAt: '2026-11-01',
     logoUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=150&auto=format&fit=crop&q=80',
     coverUrl: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=800&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'rest-3',
+    slug: 'rashid-cafe',
+    name: 'كافيه ومقهى الرشيد التراثي',
+    tagline: 'قهوة مختصة، شاي عراقي مخدر، وحلويات شرقية راقية',
+    description: 'كافيه راقي يجمع بين عبق التراث البغدادي والقهوة المختصة الحديثة والعصائر الطبيعية في بغداد.',
+    phoneWhatsapp: '9647709876543',
+    address: 'بغداد - شارع الرشيد',
+    city: 'بغداد',
+    themeColor: '#d97706', // ذهبي بغدادي فاخر
+    templateId: 'minimal-list',
+    isActive: true,
+    currency: 'د.ع',
+    openTime: '8:00 ص - 1:00 ص',
+    createdAt: '2026-11-01',
+    logoUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=150&auto=format&fit=crop&q=80',
+    coverUrl: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&auto=format&fit=crop&q=80',
   }
 ];
 
@@ -86,6 +104,9 @@ const SAMPLE_CATEGORIES: Category[] = [
   { id: 'cat-1', restaurantId: 'rest-1', name: 'الكص والشاورما', sortOrder: 1 },
   { id: 'cat-2', restaurantId: 'rest-1', name: 'وجبات وسندويشات', sortOrder: 2 },
   { id: 'cat-3', restaurantId: 'rest-1', name: 'مقبلات وعصائر', sortOrder: 3 },
+  { id: 'cat-c1', restaurantId: 'rest-3', name: 'قهوة وشاي عراقي', sortOrder: 1 },
+  { id: 'cat-c2', restaurantId: 'rest-3', name: 'مشروبات باردة وموهيتو', sortOrder: 2 },
+  { id: 'cat-c3', restaurantId: 'rest-3', name: 'حلويات وكريب', sortOrder: 3 },
 ];
 
 const SAMPLE_PRODUCTS: Product[] = [
@@ -151,6 +172,49 @@ const SAMPLE_PRODUCTS: Product[] = [
     price: 1000,
     imageUrl: 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=400&auto=format&fit=crop&q=80',
     isAvailable: true,
+  },
+  {
+    id: 'p-c1',
+    restaurantId: 'rest-3',
+    categoryId: 'cat-c1',
+    name: 'استكان شاي عراقي مخدر عالفحم',
+    description: 'شاي عراقي أصيل مهيّل ومخدر على الجمر على الطريقة البغدادية.',
+    price: 1000,
+    imageUrl: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=400&auto=format&fit=crop&q=80',
+    isAvailable: true,
+    isPopular: true,
+  },
+  {
+    id: 'p-c2',
+    restaurantId: 'rest-3',
+    categoryId: 'cat-c1',
+    name: 'قهوة مختصة فلات وايت (Flat White)',
+    description: 'إسبريسو دبل شوت مع حليب مبخر مخملي ورسمة لاتي آرت.',
+    price: 4500,
+    imageUrl: 'https://images.unsplash.com/photo-1577968897966-3d4325b36b61?w=400&auto=format&fit=crop&q=80',
+    isAvailable: true,
+    isPopular: true,
+  },
+  {
+    id: 'p-c3',
+    restaurantId: 'rest-3',
+    categoryId: 'cat-c2',
+    name: 'موهيتو رمان وتوت منعش',
+    description: 'ليمون ونعناع طازج مع سفن أب وصوص التوت الأسود والثلج المجروش.',
+    price: 4000,
+    imageUrl: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=400&auto=format&fit=crop&q=80',
+    isAvailable: true,
+  },
+  {
+    id: 'p-c4',
+    restaurantId: 'rest-3',
+    categoryId: 'cat-c3',
+    name: 'كريب نوتيلا وفراولة ملكي',
+    description: 'عجينة كريب فرنسية طازجة مغطاة بشوكولاتة نوتيلا وقطع فراولة ومكسرات.',
+    price: 6000,
+    imageUrl: 'https://images.unsplash.com/photo-1519869325930-281384150729?w=400&auto=format&fit=crop&q=80',
+    isAvailable: true,
+    isPopular: true,
   },
 ];
 
@@ -355,10 +419,10 @@ export default function App() {
               <div className="flex items-center gap-2">
                 <h1 className="font-black text-lg md:text-xl text-white tracking-wide">MENU IRAQ</h1>
                 <span className="text-[10px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/30">
-                  SaaS منصة
+                  منصة سحابية
                 </span>
               </div>
-              <p className="text-xs text-slate-400">نظام المنيو الإلكتروني وطلبات الواتساب للمطاعم</p>
+              <p className="text-xs text-slate-400">المنيو الإلكتروني الذكي للمطاعم والكافيهات في العراق 🍽️☕</p>
             </div>
           </div>
 
@@ -395,7 +459,7 @@ export default function App() {
             }`}
           >
             <ChefHat className="w-4 h-4 text-amber-400" />
-            <span>لوحة صاحب المطعم (Dashboard)</span>
+            <span>لوحة إدارة المنيو (Dashboard)</span>
           </button>
           <button
             onClick={() => setActiveTab('superadmin')}
@@ -417,7 +481,7 @@ export default function App() {
             }`}
           >
             <Smartphone className="w-4 h-4 text-emerald-400" />
-            <span>منيو الزبون وسلة الطلب</span>
+            <span>منيو الزبون والطلب السريع</span>
           </button>
           <button
             onClick={() => setActiveTab('overview')}

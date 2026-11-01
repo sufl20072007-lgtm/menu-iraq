@@ -53,6 +53,8 @@ export const RestaurantOwnerDashboard: React.FC<RestaurantOwnerDashboardProps> =
   onPreviewMenu,
 }) => {
   const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'branding' | 'qrcode'>('products');
+  const [qrTableNumber, setQrTableNumber] = useState<string>('1');
+  const [copiedDeliveryUrl, setCopiedDeliveryUrl] = useState<boolean>(false);
   
   // حالة تعديل معلومات المطعم
   const [formData, setFormData] = useState({
@@ -718,41 +720,113 @@ export const RestaurantOwnerDashboard: React.FC<RestaurantOwnerDashboardProps> =
         </form>
       )}
 
-      {/* ==================== تبويب 4: باركود الطاولات ==================== */}
+      {/* ==================== تبويب 4: باركود الطاولات وروابط الدليفري ==================== */}
       {activeTab === 'qrcode' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center space-y-4 max-w-md mx-auto">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto">
-            <QrCode className="w-6 h-6" />
-          </div>
-          <div>
-            <h4 className="font-bold text-base text-white">باركود QR لطاولات {restaurant.name}</h4>
-            <p className="text-xs text-slate-400 mt-1">
-              جاهز للطباعة واللصق على طاولات الصالة ليفتحه الزبائن فوراً بكاميرا الموبايل.
-            </p>
-          </div>
+        <div className="space-y-6 max-w-2xl mx-auto">
+          {/* البطاقة 1: باركود الطاولات الذكي (يلغي الدليفري تلقائياً عند مسحه) */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto">
+              <QrCode className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 text-xs font-bold border border-amber-500/20 mb-2">
+                <span>🍽️ باركود داخل الصالة</span>
+              </div>
+              <h4 className="font-black text-lg text-white">باركود QR لطاولات {restaurant.name}</h4>
+              <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                عندما يمسح الزبون هذا الكود بكاميرا هاتفه، سيفتح المنيو على طاولته مباشرة <strong className="text-amber-400">ولن يظهر له خيار الدليفري نهائياً</strong> لتفادي أي ارتباك!
+              </p>
+            </div>
 
-          {/* الباركود بصرياً */}
-          <div className="bg-white p-4 rounded-2xl inline-block shadow-2xl border-4 border-slate-700">
-            <div className="w-48 h-48 bg-slate-950 flex flex-col items-center justify-center rounded-xl p-2 text-white">
-              <QrCode className="w-36 h-36 text-white" />
-              <div className="text-[10px] font-mono mt-1 text-amber-300">menuiraq.com/{restaurant.slug}</div>
+            {/* اختيار رقم الطاولة لتوليد باركود مخصص لها */}
+            <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2 text-right">
+              <label className="text-xs font-bold text-slate-300 block">اختر رقم الطاولة لتوليد باركود مخصص لها:</label>
+              <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-1">
+                {['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'].map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => setQrTableNumber(num)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 transition-all ${
+                      qrTableNumber === num
+                        ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                        : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                    }`}
+                  >
+                    طاولة {num}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* الباركود بصرياً */}
+            <div className="bg-white p-4 rounded-2xl inline-block shadow-2xl border-4 border-slate-700">
+              <div className="w-48 h-48 bg-slate-950 flex flex-col items-center justify-center rounded-xl p-2 text-white">
+                <QrCode className="w-36 h-36 text-white" />
+                <div className="text-[10px] font-mono mt-1 text-amber-300 font-bold">
+                  menuiraq.com/{restaurant.slug}?mode=table&table={qrTableNumber}
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
+              <button
+                onClick={() => alert(`تم تجهيز وتنزيل ستاند باركود طاولة (${qrTableNumber}) للطباعة!`)}
+                className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5"
+              >
+                <Download className="w-4 h-4" />
+                <span>تحميل باركود طاولة ({qrTableNumber}) للطباعة</span>
+              </button>
+              <button
+                onClick={() => {
+                  const url = `https://menuiraq.com/${restaurant.slug}?mode=table&table=${qrTableNumber}`;
+                  navigator.clipboard.writeText(url);
+                  setCopiedUrl(true);
+                  setTimeout(() => setCopiedUrl(false), 2000);
+                }}
+                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl border border-slate-700 flex items-center justify-center gap-1.5"
+              >
+                {copiedUrl ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                <span>نسخ رابط الطاولة</span>
+              </button>
             </div>
           </div>
 
-          <div className="pt-2 flex gap-2">
-            <button
-              onClick={() => alert('تم تجهيز تصميم الباركود للطباعة على طاولات المطعم!')}
-              className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5"
-            >
-              <Download className="w-4 h-4" />
-              <span>تحميل الباركود للطباعة</span>
-            </button>
-            <button
-              onClick={copyMenuUrl}
-              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl border border-slate-700"
-            >
-              نسخ الرابط
-            </button>
+          {/* البطاقة 2: رابط السوشيال ميديا للدليفري (يلغي الطاولات تلقائياً) */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🛵</span>
+                <div>
+                  <h4 className="font-bold text-sm text-white">رابط السوشيال ميديا (انستغرام، تيك توك، فيسبوك)</h4>
+                  <p className="text-xs text-slate-400">مخصص لطلبات الدليفري والتوصيل للمنازل فقط</p>
+                </div>
+              </div>
+              <span className="text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-1 rounded-full font-bold">
+                توصيل دليفري
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed bg-slate-950 p-3 rounded-xl border border-slate-800">
+              ضع هذا الرابط في بايو حسابك على انستغرام أو أرسله عبر رسائل الواتساب. عندما يفتحه الزبون من بيته، <strong className="text-blue-400">سيظهر له خيار التوصيل دليفري فقط ولن يظهر له أي خيار للطاولات</strong>.
+            </p>
+
+            <div className="flex items-center gap-2">
+              <div className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-blue-300 truncate">
+                https://menuiraq.com/{restaurant.slug}?mode=delivery
+              </div>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`https://menuiraq.com/${restaurant.slug}?mode=delivery`);
+                  setCopiedDeliveryUrl(true);
+                  setTimeout(() => setCopiedDeliveryUrl(false), 2000);
+                }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all shadow-md shrink-0"
+              >
+                {copiedDeliveryUrl ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
+                <span>{copiedDeliveryUrl ? 'تم النسخ!' : 'نسخ رابط الدليفري'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

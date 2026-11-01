@@ -56,15 +56,38 @@ export const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({
   const [showQrModal, setShowQrModal] = useState<boolean>(false);
   const [copiedUrl, setCopiedUrl] = useState<boolean>(false);
 
-  // بيانات استمارة الطلب (افتراضياً طلب طاولة للمسح السريع داخل الصالة)
+  // تحديد قناة الدخول: هل دخل من باركود الطاولة أم من رابط الموقع/السوشيال ميديا؟
+  const [accessChannel, setAccessChannel] = useState<'qr_table' | 'web_delivery'>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('mode') === 'delivery') return 'web_delivery';
+      if (params.get('mode') === 'table' || params.has('table') || params.get('qr') === '1') return 'qr_table';
+    }
+    return 'qr_table'; // افتراضياً تجربة مسح باركود الطاولة
+  });
+
+  // رقم الطاولة المستخرج من الرابط (إن وُجد)
+  const initialTable = typeof window !== 'undefined' 
+    ? new URLSearchParams(window.location.search).get('table') || '1'
+    : '1';
+
+  // بيانات استمارة الطلب
   const [orderData, setOrderData] = useState<CustomerOrderData>({
     customerName: '',
     customerPhone: '',
     deliveryAddress: '',
-    orderType: 'dine_in',
-    tableNumber: '1',
+    orderType: accessChannel === 'qr_table' ? 'dine_in' : 'delivery',
+    tableNumber: initialTable,
     notes: '',
   });
+
+  // مزامنة نوع الطلب تلقائياً مع قناة الدخول
+  React.useEffect(() => {
+    setOrderData((prev) => ({
+      ...prev,
+      orderType: accessChannel === 'qr_table' ? 'dine_in' : 'delivery',
+    }));
+  }, [accessChannel]);
 
   // الحسابات المالية
   const totalAmount = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
@@ -86,45 +109,57 @@ export const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({
     });
   }, [products, restaurant.id, selectedCategory, searchQuery]);
 
-  // توليد رسالة الواتساب المنسقة باحترافية
+  // أرقام تعبيرية منسقة للواتساب
+  const getNumberEmoji = (num: number) => {
+    const emojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+    return emojis[num - 1] || `${num}.`;
+  };
+
+  // توليد رسالة الواتساب المنسقة بخط فائق الترتيب والوضوح
   const generateWhatsAppMessage = () => {
-    let msg = `*طلب جديد عبر المنيو الإلكتروني 🍽️☕*\n`;
-    msg += `المحل: *${restaurant.name}*\n`;
+    let msg = `*━━━━━━━━━━━━━━━━━━━━━*\n`;
+    msg += `*🍽️ طلب جديد من المنيو الإلكتروني ☕*\n`;
+    msg += `*━━━━━━━━━━━━━━━━━━━━━*\n\n`;
+    msg += `🏛️ *المحل:* *${restaurant.name}*\n`;
     
-    if (orderData.orderType === 'dine_in') {
+    if (accessChannel === 'qr_table') {
       msg += `📍 *نوع الطلب:* *داخل الصالة - طاولة رقم (${orderData.tableNumber || '1'})* 🍽️\n`;
     } else {
-      msg += `🛵 *نوع الطلب:* *توصيل دليفري*\n`;
+      msg += `🛵 *نوع الطلب:* *توصيل دليفري إلى البيت* 🏠\n`;
     }
-    msg += `--------------------------------\n`;
+    msg += `*─────────────────────*\n`;
+    msg += `📋 *تفاصيل الطلبات:*\n\n`;
 
     cart.forEach((item, index) => {
-      msg += `${index + 1}. *${item.product.name}* × ${item.quantity} = ${(
-        item.product.price * item.quantity
-      ).toLocaleString()} ${restaurant.currency}\n`;
+      const numEmoji = getNumberEmoji(index + 1);
+      const itemTotal = (item.product.price * item.quantity).toLocaleString();
+      const unitPrice = item.product.price.toLocaleString();
+      msg += `${numEmoji} *${item.product.name}*\n`;
+      msg += `   ↳ *الكمية:* ${item.quantity} × ${unitPrice} = *${itemTotal} ${restaurant.currency}*\n\n`;
     });
 
-    msg += `--------------------------------\n`;
-    msg += `*المجموع الكلي:* *${totalAmount.toLocaleString()} ${restaurant.currency}*\n\n`;
+    msg += `*─────────────────────*\n`;
+    msg += `💰 *المجموع الكلي:* *${totalAmount.toLocaleString()} ${restaurant.currency}*\n`;
+    msg += `*─────────────────────*\n`;
 
-    if (orderData.orderType === 'dine_in') {
-      // طلب الطاولة مبسط جداً بدون طلب رقم هاتف
-      if (orderData.notes) {
-        msg += `📝 *ملاحظات الطاولة:* ${orderData.notes}\n`;
+    if (accessChannel === 'qr_table') {
+      if (orderData.notes && orderData.notes.trim()) {
+        msg += `📝 *ملاحظات الطاولة:*\n${orderData.notes.trim()}\n`;
+        msg += `*─────────────────────*\n`;
       }
     } else {
-      // طلب التوصيل دليفري
-      if (orderData.customerName) {
-        msg += `👤 *اسم الزبون:* ${orderData.customerName}\n`;
+      if (orderData.customerName && orderData.customerName.trim()) {
+        msg += `👤 *اسم الزبون:* ${orderData.customerName.trim()}\n`;
       }
-      msg += `📱 *رقم الهاتف:* ${orderData.customerPhone || 'غير محدد'}\n`;
+      msg += `📱 *رقم هاتف المستلم:* ${orderData.customerPhone || 'غير محدد'}\n`;
       msg += `📍 *عنوان التوصيل:* ${orderData.deliveryAddress || 'غير محدد'}\n`;
-      if (orderData.notes) {
-        msg += `📝 *ملاحظات التوصيل:* ${orderData.notes}\n`;
+      if (orderData.notes && orderData.notes.trim()) {
+        msg += `📝 *ملاحظات التوصيل:*\n${orderData.notes.trim()}\n`;
       }
+      msg += `*─────────────────────*\n`;
     }
 
-    msg += `\n_تم الطلب عبر المنيو الإلكتروني الذكي_`;
+    msg += `_📱 تم الإرسال عبر المنيو الإلكتروني الذكي MENU IRAQ_`;
     return msg;
   };
 
@@ -157,7 +192,10 @@ export const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({
           </button>
           <button
             onClick={() => {
-              navigator.clipboard.writeText(`https://menuiraq.com/${restaurant.slug}`);
+              const url = accessChannel === 'qr_table' 
+                ? `https://menuiraq.com/${restaurant.slug}?mode=table&table=${orderData.tableNumber || '1'}`
+                : `https://menuiraq.com/${restaurant.slug}?mode=delivery`;
+              navigator.clipboard.writeText(url);
               setCopiedUrl(true);
               setTimeout(() => setCopiedUrl(false), 2000);
             }}
@@ -165,6 +203,64 @@ export const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({
           >
             {copiedUrl ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5" />}
             <span>مشاركة</span>
+          </button>
+        </div>
+      </div>
+
+      {/* شريط ذكي يفصل بين مصدر الدخول: باركود الطاولة مقابل رابط الدليفري */}
+      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: accessChannel === 'qr_table' ? themeColor : '#2563eb' }} />
+          <div>
+            <div className="font-bold text-white text-xs">
+              {accessChannel === 'qr_table' ? '📱 داخل الصالة (ممسوح من باركود الطاولة)' : '🌐 متصفح خارجي (رابط الموقع والسوشيال ميديا)'}
+            </div>
+            <div className="text-[11px] text-slate-400">
+              {accessChannel === 'qr_table' 
+                ? '✅ خيار الدليفري ملغي تماماً للزبون الجالس على الطاولة منعاً للالتباس' 
+                : '✅ خيار الطاولات ملغي ومخصص حصرياً لطلبات التوصيل للمنازل'}
+            </div>
+          </div>
+        </div>
+
+        {/* محاكي تبديل طريقة الدخول لتجربة الواجهتين */}
+        <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              setAccessChannel('qr_table');
+              setOrderData((prev) => ({ ...prev, orderType: 'dine_in' }));
+            }}
+            className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all ${
+              accessChannel === 'qr_table'
+                ? 'text-white shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+            style={{
+              backgroundColor: accessChannel === 'qr_table' ? themeColor : undefined,
+            }}
+          >
+            <span>🍽️</span>
+            <span>طاولة الصالة</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setAccessChannel('web_delivery');
+              setOrderData((prev) => ({ ...prev, orderType: 'delivery' }));
+            }}
+            className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all ${
+              accessChannel === 'web_delivery'
+                ? 'text-white shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+            style={{
+              backgroundColor: accessChannel === 'web_delivery' ? '#2563eb' : undefined,
+            }}
+          >
+            <span>🛵</span>
+            <span>توصيل دليفري</span>
           </button>
         </div>
       </div>
@@ -501,166 +597,196 @@ export const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({
                 ))}
               </div>
 
-              {/* اختيار نوع الطلب (داخل الصالة أو توصيل فقط) */}
-              <div className="space-y-1.5 pt-2 border-t border-slate-800">
-                <label className="text-xs font-bold text-slate-300 block">اختر نوع طلبك:</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setOrderData({ ...orderData, orderType: 'dine_in' })}
-                    className={`py-2.5 px-3 rounded-xl border text-center transition-all text-xs font-bold flex items-center justify-center gap-1.5 ${
-                      orderData.orderType === 'dine_in'
-                        ? 'text-white shadow-lg ring-1 ring-white/20'
-                        : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
-                    }`}
-                    style={{
-                      backgroundColor: orderData.orderType === 'dine_in' ? themeColor : undefined,
-                      borderColor: orderData.orderType === 'dine_in' ? themeColor : undefined,
-                    }}
-                  >
-                    <span>🍽️</span>
-                    <span>داخل الصالة (طاولة)</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setOrderData({ ...orderData, orderType: 'delivery' })}
-                    className={`py-2.5 px-3 rounded-xl border text-center transition-all text-xs font-bold flex items-center justify-center gap-1.5 ${
-                      orderData.orderType === 'delivery'
-                        ? 'text-white shadow-lg ring-1 ring-white/20'
-                        : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
-                    }`}
-                    style={{
-                      backgroundColor: orderData.orderType === 'delivery' ? themeColor : undefined,
-                      borderColor: orderData.orderType === 'delivery' ? themeColor : undefined,
-                    }}
-                  >
-                    <span>🛵</span>
-                    <span>توصيل دليفري</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* استمارة الطلب المبسطة حسب نوع الطلب */}
-              <div className="space-y-3 text-xs">
-                {orderData.orderType === 'dine_in' ? (
-                  // واجهة داخل الصالة: فائقة البساطة والسلاسة بلمسة واحدة بدون رقم هاتف
-                  <div className="space-y-3 bg-slate-950/90 p-3.5 rounded-2xl border border-slate-800/80">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-white font-bold text-xs flex items-center gap-1.5">
-                          <span>🍽️ اختر رقم طاولتك:</span>
-                        </label>
-                        <span className="text-xs text-amber-400 font-mono font-black bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
-                          طاولة: {orderData.tableNumber || '1'}
-                        </span>
-                      </div>
-                      
-                      {/* أزرار سريعة لأرقام الطاولات بلمسة واحدة */}
-                      <div className="grid grid-cols-6 gap-1.5 mb-2.5">
-                        {['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'].map((num) => (
-                          <button
-                            key={num}
-                            type="button"
-                            onClick={() => setOrderData({ ...orderData, tableNumber: num })}
-                            className={`py-2 rounded-xl font-black text-xs transition-all ${
-                              orderData.tableNumber === num
-                                ? 'text-white shadow-md scale-105 ring-2 ring-white/30'
-                                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-                            }`}
-                            style={{
-                              backgroundColor: orderData.tableNumber === num ? themeColor : undefined,
-                            }}
-                          >
-                            {num}
-                          </button>
-                        ))}
-                      </div>
-
+              {/* قسم بيانات الطلب المعزول تماماً حسب طريقة الدخول */}
+              <div className="pt-2 border-t border-slate-800 space-y-3">
+                {accessChannel === 'qr_table' ? (
+                  // ==================== واجهة زبون الصالة (ممسوح من كود الطاولة) ====================
+                  // خيار الدليفري ملغي بالكامل هنا لمنع اللخبطة
+                  <div className="space-y-3">
+                    <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-slate-400 shrink-0">أو رقم طاولة أخرى:</span>
-                        <input
-                          type="text"
-                          placeholder="مثلاً: 14، خارجي، VIP..."
-                          value={orderData.tableNumber}
-                          onChange={(e) => setOrderData({ ...orderData, tableNumber: e.target.value })}
-                          className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5 text-white text-xs font-bold text-center focus:outline-none focus:border-amber-500"
-                        />
+                        <span className="text-xl">🍽️</span>
+                        <div>
+                          <div className="text-xs font-black text-white">طلب داخل الصالة (طاولة)</div>
+                          <div className="text-[10px] text-amber-300">تم المسح عبر كود الطاولة • الدليفري ملغي لراحتك</div>
+                        </div>
                       </div>
+                      <span className="text-xs font-mono font-black bg-amber-500/20 text-amber-300 px-2.5 py-1 rounded-xl border border-amber-500/30">
+                        طاولة رقم: {orderData.tableNumber || '1'}
+                      </span>
                     </div>
 
-                    <div>
-                      <label className="text-slate-400 block mb-1">ملاحظات على الطلب (اختياري):</label>
-                      <input
-                        type="text"
-                        placeholder="مثلاً: بدون شكر، زيادة ثلج، صمون مقسب..."
-                        value={orderData.notes}
-                        onChange={(e) => setOrderData({ ...orderData, notes: e.target.value })}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-500"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  // استمارة التوصيل دليفري (تحتاج العنوان والهاتف للتوصيل)
-                  <div className="space-y-2.5 bg-slate-950/90 p-3.5 rounded-2xl border border-slate-800/80">
-                    <div>
-                      <label className="text-slate-200 block mb-1 font-bold">عنوان التوصيل بالتفصيل: *</label>
-                      <input
-                        type="text"
-                        placeholder="المنطقة، الشارع، أقرب نقطة دالة أو بناية..."
-                        value={orderData.deliveryAddress}
-                        onChange={(e) => setOrderData({ ...orderData, deliveryAddress: e.target.value })}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-500"
-                      />
-                    </div>
+                    <div className="bg-slate-950/90 p-3.5 rounded-2xl border border-slate-800 space-y-3 text-xs">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-slate-200 font-bold text-xs flex items-center gap-1.5">
+                            <span>اختر رقم طاولتك بلمسة واحدة:</span>
+                          </label>
+                          <span className="text-[11px] text-slate-400">انقر الرقم مباشرة 👇</span>
+                        </div>
 
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-slate-200 block mb-1 font-bold">رقم الهاتف: *</label>
-                        <input
-                          type="text"
-                          placeholder="0770..."
-                          value={orderData.customerPhone}
-                          onChange={(e) => setOrderData({ ...orderData, customerPhone: e.target.value })}
-                          className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-amber-500"
-                        />
+                        {/* أزرار سريعة لأرقام الطاولات */}
+                        <div className="grid grid-cols-6 gap-1.5 mb-2.5">
+                          {['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'].map((num) => (
+                            <button
+                              key={num}
+                              type="button"
+                              onClick={() => setOrderData({ ...orderData, tableNumber: num })}
+                              className={`py-2 rounded-xl font-black text-xs transition-all ${
+                                orderData.tableNumber === num
+                                  ? 'text-white shadow-md scale-105 ring-2 ring-white/30'
+                                  : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                              }`}
+                              style={{
+                                backgroundColor: orderData.tableNumber === num ? themeColor : undefined,
+                              }}
+                            >
+                              {num}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] text-slate-400 shrink-0">أو رقم طاولة أخرى:</span>
+                          <input
+                            type="text"
+                            placeholder="مثلاً: 14، الصالة الخارجية، VIP..."
+                            value={orderData.tableNumber}
+                            onChange={(e) => setOrderData({ ...orderData, tableNumber: e.target.value })}
+                            className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-white text-xs font-bold text-center focus:outline-none focus:border-amber-500"
+                          />
+                        </div>
                       </div>
+
                       <div>
-                        <label className="text-slate-300 block mb-1">اسمك الكريم (اختياري):</label>
+                        <label className="text-slate-300 block mb-1 font-medium">ملاحظات على الوجبات والمشروبات (اختياري):</label>
                         <input
                           type="text"
-                          placeholder="الاسم"
-                          value={orderData.customerName}
-                          onChange={(e) => setOrderData({ ...orderData, customerName: e.target.value })}
+                          placeholder="مثلاً: شاي خفيف، بدون شكر، صمون مقسب، زيادة ثلج..."
+                          value={orderData.notes}
+                          onChange={(e) => setOrderData({ ...orderData, notes: e.target.value })}
                           className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-500"
                         />
                       </div>
                     </div>
+                  </div>
+                ) : (
+                  // ==================== واجهة زبون الدليفري (رابط السوشيال ميديا أو الموقع) ====================
+                  // خيار الطاولات ملغي بالكامل هنا
+                  <div className="space-y-3">
+                    <div className="p-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">🛵</span>
+                        <div>
+                          <div className="text-xs font-black text-white">طلب توصيل دليفري للبيت أو العمل</div>
+                          <div className="text-[10px] text-blue-300">دخول عبر رابط الموقع • مخصص حصرياً للتوصيل الخارجي</div>
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-bold bg-blue-500/20 text-blue-300 px-2.5 py-1 rounded-xl border border-blue-500/30">
+                        توصيل سريع
+                      </span>
+                    </div>
 
-                    <div>
-                      <label className="text-slate-300 block mb-1">ملاحظات التوصيل (اختياري):</label>
-                      <input
-                        type="text"
-                        placeholder="أي تفاصيل خاصة بالسائق أو الطلب..."
-                        value={orderData.notes}
-                        onChange={(e) => setOrderData({ ...orderData, notes: e.target.value })}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-500"
-                      />
+                    <div className="space-y-2.5 bg-slate-950/90 p-3.5 rounded-2xl border border-slate-800 text-xs">
+                      <div>
+                        <label className="text-slate-200 block mb-1 font-bold">عنوان التوصيل بالتفصيل: *</label>
+                        <input
+                          type="text"
+                          placeholder="المحافظة، المنطقة، اسم الشارع، أقرب نقطة دالة أو بناية..."
+                          value={orderData.deliveryAddress}
+                          onChange={(e) => setOrderData({ ...orderData, deliveryAddress: e.target.value })}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-slate-200 block mb-1 font-bold">رقم هاتف المستلم: *</label>
+                          <input
+                            type="text"
+                            placeholder="0770..."
+                            value={orderData.customerPhone}
+                            onChange={(e) => setOrderData({ ...orderData, customerPhone: e.target.value })}
+                            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-slate-300 block mb-1">اسمك الكريم (اختياري):</label>
+                          <input
+                            type="text"
+                            placeholder="مثلاً: علي"
+                            value={orderData.customerName}
+                            onChange={(e) => setOrderData({ ...orderData, customerName: e.target.value })}
+                            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-slate-300 block mb-1">ملاحظات التوصيل (اختياري):</label>
+                        <input
+                          type="text"
+                          placeholder="أي تفاصيل خاصة بالسائق أو وقت الاستلام..."
+                          value={orderData.notes}
+                          onChange={(e) => setOrderData({ ...orderData, notes: e.target.value })}
+                          className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-blue-500"
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
+
+                {/* معاينة الفاتورة المنظمة قبل الإرسال بخط مرتب ومريح للعين */}
+                <div className="bg-slate-900 border border-slate-800/90 rounded-2xl p-3.5 space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <div className="flex items-center gap-1.5 text-xs font-black text-white">
+                      <span>🧾</span>
+                      <span>معاينة الفاتورة الإلكترونية:</span>
+                    </div>
+                    <span className="text-[11px] text-slate-400 font-bold">
+                      {accessChannel === 'qr_table' ? `طاولة (${orderData.tableNumber || '1'})` : 'توصيل منزلي'}
+                    </span>
+                  </div>
+
+                  {/* قائمة الأصناف مرتبة بفواصل نظيفة وخط واضح */}
+                  <div className="space-y-1.5 text-xs divide-y divide-slate-800/60">
+                    {cart.map((item, idx) => (
+                      <div key={item.product.id} className="pt-1.5 first:pt-0 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="w-5 h-5 rounded-md bg-slate-800 text-amber-400 font-bold text-[10px] flex items-center justify-center shrink-0 border border-slate-700">
+                            {idx + 1}
+                          </span>
+                          <span className="font-bold text-slate-100 truncate">{item.product.name}</span>
+                          <span className="text-[10px] text-slate-400 font-mono shrink-0 bg-slate-950 px-1.5 py-0.5 rounded">
+                            {item.quantity}×
+                          </span>
+                        </div>
+                        <span className="font-bold font-mono text-emerald-400 text-xs shrink-0">
+                          {(item.product.price * item.quantity).toLocaleString()} {restaurant.currency}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {orderData.notes && orderData.notes.trim() && (
+                    <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 text-[11px] text-slate-300">
+                      <span className="text-amber-400 font-bold ml-1">📝 ملاحظة:</span>
+                      <span>{orderData.notes.trim()}</span>
+                    </div>
+                  )}
+
+                  <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-300">المجموع المطلوب للدفع:</span>
+                    <span className="text-base font-black text-white font-mono">
+                      {totalAmount.toLocaleString()} {restaurant.currency}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* زر إرسال الطلب النهائي لواتساب */}
             <div className="p-4 border-t border-slate-800 bg-slate-950/80 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400 font-bold">المجموع الكلي:</span>
-                <span className="text-base font-black text-white">
-                  {totalAmount.toLocaleString()} {restaurant.currency}
-                </span>
-              </div>
-
               <button
                 onClick={handleSendOrder}
                 className="w-full py-3.5 rounded-xl text-white font-black text-xs md:text-sm flex items-center justify-center gap-2 shadow-xl transition-all active:scale-95 hover:opacity-95"
@@ -668,7 +794,7 @@ export const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({
               >
                 <Send className="w-4 h-4" />
                 <span>
-                  {orderData.orderType === 'dine_in'
+                  {accessChannel === 'qr_table'
                     ? `إرسال طلب طاولة (${orderData.tableNumber || '1'}) إلى واتساب 🍽️`
                     : `إرسال طلب التوصيل إلى واتساب 🛵`}
                 </span>

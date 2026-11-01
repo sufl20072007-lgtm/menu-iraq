@@ -999,6 +999,62 @@ export const RestaurantOwnerDashboard: React.FC<RestaurantOwnerDashboardProps> =
               qrCodeToken={formData.qrCodeToken}
               isTableMode={true}
             />
+
+            {/* دليل توضيحي عملي للويتر وإدارة الصالة */}
+            <div className="bg-slate-950/80 border border-amber-500/30 rounded-2xl p-4 sm:p-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">💡</span>
+                <h4 className="font-bold text-sm text-amber-300">
+                  كيف يعرف الويتر والمطبخ مكان الطاولات بالصالة بدون أي التباس؟
+                </h4>
+              </div>
+
+              <p className="text-xs text-slate-300 leading-relaxed">
+                النظام مصمم وفق أفضل معايير المطاعم والكافيهات العالمية (Smart Table QR):
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-1">
+                  <div className="flex items-center gap-2 text-white font-bold">
+                    <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center text-[10px]">1</span>
+                    <span>ستاند الأكرليك الفيزيائي</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    عند تحميل الستاند وطباعته، يظهر رقم الطاولة (<strong className="text-white">طاولة رقم 5</strong>) بخط عملاق جداً في الأعلى. يوضع الستاند فوق الطاولة في الصالة ويستطيع الويتر قراءة الرقم من مسافة 5 أمتار.
+                  </p>
+                </div>
+
+                <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-1">
+                  <div className="flex items-center gap-2 text-white font-bold">
+                    <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center text-[10px]">2</span>
+                    <span>التقاط تلقائي 100%</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    بمجرد مسح الزبون للباركود، النظام يثبت رقم طاولته تلقائياً، وحذفنا اختيار الطاولة اليدوي حتى لا يخطئ الزبون الجالس على طاولة 5 ويضغط طاولة 4 بالخطأ.
+                  </p>
+                </div>
+
+                <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-1">
+                  <div className="flex items-center gap-2 text-white font-bold">
+                    <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center text-[10px]">3</span>
+                    <span>إشعار الطلب المباشر</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    يصل الطلب لواتساب المطعم أو طابعة الكاشير مع سطر عريض: <code className="text-emerald-400 font-mono">📍 داخل الصالة - طاولة (5) 🍽️</code> مع الوجبات والمجموع.
+                  </p>
+                </div>
+
+                <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-1">
+                  <div className="flex items-center gap-2 text-white font-bold">
+                    <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center text-[10px]">4</span>
+                    <span>التقديم الفوري للزبون</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    الويتر يستلم صينية الأكل من المطبخ وينظر مباشرة لستاندات الصالة المرقمة، ويوصل الطلب لطاولة 5 بثوانٍ بدون ما يسأل عن الاسم أو يدوّر.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* البطاقة 2: رابط السوشيال ميديا للدليفري (يلغي الطاولات تلقائياً) */}

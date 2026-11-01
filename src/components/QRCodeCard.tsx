@@ -58,47 +58,58 @@ export const QRCodeCard: React.FC<QRCodeCardProps> = ({
   const handleDownloadPrintableStander = () => {
     const canvas = document.createElement('canvas');
     canvas.width = 900;
-    canvas.height = 1200;
+    canvas.height = 1250;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // خلفية بيضاء أنيقة
+    // خلفية بيضاء أنيقة مع إطار أكريليك فخم
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, 900, 1200);
+    ctx.fillRect(0, 0, 900, 1250);
 
-    // إطار ملون متوافق مع هوية المحل
+    // إطار ملون علوي متوافق مع هوية المحل
     ctx.fillStyle = themeColor;
     ctx.fillRect(0, 0, 900, 180);
 
-    // رأس البطاقة
+    // رأس البطاقة - اسم المطعم/الكافيه بخط عريض وفخم
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 44px sans-serif';
+    ctx.font = '900 46px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(restaurantName, 450, 80);
 
-    ctx.font = '24px sans-serif';
+    ctx.font = 'bold 24px sans-serif';
     ctx.fillStyle = '#f8fafc';
-    ctx.fillText('المنيو الإلكتروني الذكي', 450, 130);
+    ctx.fillText('المنيو الإلكتروني الذكي • MENU IRAQ', 450, 132);
 
-    // شارة الطاولة
+    // شارة الطاولة الضخمة جداً - يراها الويتر من بعد 5 أمتار في الصالة
     if (isTableMode && tableNumber) {
-      ctx.fillStyle = '#f1f5f9';
+      // كبسولة داكنة محددة بوضوح شديد
+      ctx.fillStyle = '#0f172a';
       ctx.beginPath();
-      ctx.roundRect(250, 220, 400, 90, 20);
+      ctx.roundRect(160, 210, 580, 140, 24);
       ctx.fill();
 
-      ctx.fillStyle = themeColor;
-      ctx.font = 'bold 46px sans-serif';
-      ctx.fillText(`طاولة رقم ${tableNumber}`, 450, 282);
+      // إطار بلون الثيم
+      ctx.strokeStyle = themeColor;
+      ctx.lineWidth = 6;
+      ctx.stroke();
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = 'bold 26px sans-serif';
+      ctx.fillText('طلب داخل الصالة', 450, 252);
+
+      // رقم الطاولة بحجم عملاق
+      ctx.fillStyle = '#fbbf24'; // لون ذهبي أصفر واضح
+      ctx.font = '900 66px sans-serif';
+      ctx.fillText(`طاولة رقم [ ${tableNumber} ]`, 450, 322);
     } else {
       ctx.fillStyle = '#f1f5f9';
       ctx.beginPath();
-      ctx.roundRect(250, 220, 400, 80, 20);
+      ctx.roundRect(200, 220, 500, 90, 20);
       ctx.fill();
 
       ctx.fillStyle = themeColor;
-      ctx.font = 'bold 36px sans-serif';
-      ctx.fillText('توصيل دليفري أونلاين', 450, 275);
+      ctx.font = '900 40px sans-serif';
+      ctx.fillText('توصيل دليفري أونلاين 🛵', 450, 280);
     }
 
     // رسم صورة الـ QR الفعلي
@@ -106,31 +117,45 @@ export const QRCodeCard: React.FC<QRCodeCardProps> = ({
       const qrImg = new Image();
       qrImg.crossOrigin = 'anonymous';
       qrImg.onload = () => {
-        // إطار كود QR
-        ctx.strokeStyle = '#e2e8f0';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(210, 350, 480, 480);
-        ctx.drawImage(qrImg, 220, 360, 460, 460);
+        // إطار كود QR فخم ونظيف
+        const qrBoxY = isTableMode && tableNumber ? 380 : 350;
+        ctx.fillStyle = '#f8fafc';
+        ctx.beginPath();
+        ctx.roundRect(200, qrBoxY, 500, 500, 24);
+        ctx.fill();
+
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.drawImage(qrImg, 225, qrBoxY + 25, 450, 450);
 
         // تعليمات واضحة بالعراقي
         ctx.fillStyle = '#0f172a';
-        ctx.font = 'bold 36px sans-serif';
-        ctx.fillText('امسح الكود بكاميرا الموبايل 📱', 450, 910);
+        ctx.font = '900 38px sans-serif';
+        ctx.fillText('امسح الكود بكاميرا الموبايل 📱', 450, qrBoxY + 560);
 
-        ctx.fillStyle = '#64748b';
-        ctx.font = '26px sans-serif';
-        ctx.fillText('واطلب بدون انتظار الويتر فوراً', 450, 960);
+        ctx.fillStyle = '#475569';
+        ctx.font = 'bold 26px sans-serif';
+        ctx.fillText('واطلب أكلك فوراً بدون انتظار الويتر', 450, qrBoxY + 610);
 
-        // شريط سفلي
-        ctx.fillStyle = '#f8fafc';
-        ctx.fillRect(0, 1070, 900, 130);
-        ctx.fillStyle = '#94a3b8';
+        // تذكير بالرقم أسفل الستاند
+        if (isTableMode && tableNumber) {
+          ctx.fillStyle = themeColor;
+          ctx.font = '900 28px sans-serif';
+          ctx.fillText(`🍽️ هذا الستاند مخصص لطاولة رقم (${tableNumber}) فقط`, 450, qrBoxY + 665);
+        }
+
+        // شريط سفلي موثق
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 1150, 900, 100);
+        ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 22px sans-serif';
-        ctx.fillText('MENU IRAQ • نظام المنيو السحابي المعتمد', 450, 1145);
+        ctx.fillText('MENU IRAQ • نظام المنيو السحابي المعتمد في العراق 🇮🇶', 450, 1210);
 
-        // تصدير كصورة PNG قابلة للتحميل فوراً
+        // تصدير كصورة PNG عالية الجودة قابلة للطباعة المباشرة على الأكريليك
         const link = document.createElement('a');
-        link.download = `QR-${restaurantName.replace(/\s+/g, '_')}-طاولة-${tableNumber || 'العامة'}.png`;
+        link.download = `ستاند-طاولة-${tableNumber || 'عام'}-${restaurantName.replace(/\s+/g, '_')}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
       };
@@ -146,29 +171,51 @@ export const QRCodeCard: React.FC<QRCodeCardProps> = ({
 
   return (
     <div className="bg-slate-950 border border-slate-800 rounded-2xl p-5 text-center space-y-4 shadow-xl">
-      {/* بطاقة الباركود المعروضة */}
-      <div className="relative inline-block bg-white p-3 rounded-2xl shadow-xl border-4 border-slate-800 transition-transform hover:scale-[1.02]">
-        {dataUrl ? (
-          <img
-            src={dataUrl}
-            alt={`QR Code ${restaurantName} Table ${tableNumber || ''}`}
-            className="w-52 h-52 sm:w-60 sm:h-60 mx-auto object-contain rounded-lg"
-          />
-        ) : (
-          <div className="w-52 h-52 sm:w-60 sm:h-60 bg-slate-100 flex items-center justify-center rounded-lg">
-            <span className="text-xs text-slate-500 animate-pulse">جاري إنشاء الباركود...</span>
+      {/* محاكاة ستاند الأكرليك الفعلي للطاولة (Acrylic Stand Mockup) */}
+      <div className="relative inline-block bg-white rounded-3xl p-5 shadow-2xl border-4 border-slate-700/60 max-w-sm w-full mx-auto text-slate-900 transition-all hover:shadow-amber-500/10">
+        {/* رأس الستاند: اسم المحل + شارة الطاولة الضخمة جداً */}
+        <div className="border-b border-slate-200 pb-3 mb-3 text-center">
+          <div className="text-xs font-black tracking-wider text-slate-500 mb-0.5">
+            {restaurantName}
           </div>
-        )}
+          {isTableMode && tableNumber ? (
+            <div className="mt-1 inline-flex items-center gap-2 bg-slate-900 text-amber-400 px-4 py-1.5 rounded-2xl border-2 border-amber-500/50 shadow-md">
+              <span className="text-lg">🍽️</span>
+              <span className="text-lg sm:text-xl font-black">طاولة رقم [ {tableNumber} ]</span>
+            </div>
+          ) : (
+            <div className="mt-1 inline-flex items-center gap-2 bg-blue-600 text-white px-3 py-1 rounded-xl font-bold text-xs">
+              <span>🛵 طلبات التوصيل المنزلي</span>
+            </div>
+          )}
+        </div>
 
-        {/* علامة الطاولة في أسفل الباركود */}
-        {isTableMode && tableNumber && (
-          <div
-            className="mt-2 py-1 px-3 rounded-lg text-white font-black text-xs shadow-sm flex items-center justify-center gap-1.5"
-            style={{ backgroundColor: themeColor }}
-          >
-            <span>🍽️ طاولة رقم ({tableNumber})</span>
+        {/* كود QR الفعلي */}
+        <div className="bg-slate-50 p-2 rounded-2xl border border-slate-200 inline-block shadow-inner">
+          {dataUrl ? (
+            <img
+              src={dataUrl}
+              alt={`QR Code ${restaurantName} Table ${tableNumber || ''}`}
+              className="w-48 h-48 sm:w-56 sm:h-56 mx-auto object-contain rounded-xl"
+            />
+          ) : (
+            <div className="w-48 h-48 sm:w-56 sm:h-56 bg-slate-100 flex items-center justify-center rounded-xl">
+              <span className="text-xs text-slate-500 animate-pulse">جاري إنشاء الباركود...</span>
+            </div>
+          )}
+        </div>
+
+        {/* إرشادات سريعة في أسفل الستاند يراها الزبون والويتر */}
+        <div className="mt-3 text-center space-y-0.5">
+          <div className="text-xs font-black text-slate-800">
+            امسح الكود واطلب مباشرة 📱
           </div>
-        )}
+          <div className="text-[11px] text-slate-500 font-medium">
+            {isTableMode && tableNumber 
+              ? `الطلب يصل فوراً لطاولة رقم (${tableNumber}) دون انتظار`
+              : 'منيو إلكتروني سريع'}
+          </div>
+        </div>
       </div>
 
       {/* رابط مشفر فريد */}

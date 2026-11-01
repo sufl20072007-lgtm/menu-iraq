@@ -82,6 +82,9 @@ export const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({
     notes: '',
   });
 
+  // حالة إظهار شبكة اختيار الطاولة اليدوية (مخفية افتراضياً لأن الباركود يحددها تلقائياً)
+  const [showManualTablePicker, setShowManualTablePicker] = useState<boolean>(false);
+
   // مزامنة نوع الطلب تلقائياً مع قناة الدخول
   React.useEffect(() => {
     setOrderData((prev) => ({
@@ -604,42 +607,67 @@ export const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({
                   // ==================== واجهة زبون الصالة (ممسوح من كود الطاولة) ====================
                   // خيار الدليفري ملغي بالكامل هنا لمنع اللخبطة
                   <div className="space-y-3">
-                    <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">🍽️</span>
-                        <div>
-                          <div className="text-xs font-black text-white">طلب داخل الصالة (طاولة)</div>
-                          <div className="text-[10px] text-amber-300">تم المسح عبر كود الطاولة • الدليفري ملغي لراحتك</div>
+                    {/* بطاقة تأكيد رقم الطاولة الملتقطة تلقائياً من الباركود */}
+                    <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/30 flex items-center justify-between gap-3 shadow-lg">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center text-lg font-black shrink-0">
+                          🍽️
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-black text-white">
+                              طاولة رقم <span className="text-amber-400 font-mono text-sm underline underline-offset-2">[{orderData.tableNumber || '1'}]</span>
+                            </span>
+                            <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30 shrink-0">
+                              ✓ محددة تلقائياً من الباركود
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-400 mt-0.5 truncate">
+                            طاولتك مسجلة تلقائياً • الويتر سيجلب الأكل لمكانك مباشرة
+                          </div>
                         </div>
                       </div>
-                      <span className="text-xs font-mono font-black bg-amber-500/20 text-amber-300 px-2.5 py-1 rounded-xl border border-amber-500/30">
-                        طاولة رقم: {orderData.tableNumber || '1'}
-                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowManualTablePicker(!showManualTablePicker)}
+                        className="text-[11px] text-slate-400 hover:text-amber-300 underline decoration-slate-600 hover:decoration-amber-400 shrink-0 font-medium px-1 cursor-pointer transition-colors"
+                      >
+                        {showManualTablePicker ? 'إغلاق الأرقام ✕' : 'تغيير الطاولة؟'}
+                      </button>
                     </div>
 
-                    <div className="bg-slate-950/90 p-3.5 rounded-2xl border border-slate-800 space-y-3 text-xs">
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <label className="text-slate-200 font-bold text-xs flex items-center gap-1.5">
-                            <span>اختر رقم طاولتك بلمسة واحدة:</span>
+                    {/* خيار تغيير الطاولة (يظهر فقط إذا أراد الزبون التغيير بعد انتقاله لطاولة ثانية) */}
+                    {showManualTablePicker && (
+                      <div className="bg-slate-950/90 p-3.5 rounded-2xl border border-amber-500/30 space-y-3 text-xs animate-fadeIn">
+                        <div className="flex items-center justify-between">
+                          <label className="text-amber-300 font-bold text-xs flex items-center gap-1.5">
+                            <span>هل انتقلت لطاولة أخرى؟ اختر رقمها الجديد:</span>
                           </label>
-                          <span className="text-[11px] text-slate-400">
-                            {restaurant.tablesCount ? `(مجموع ${restaurant.tablesCount} طاولة مسجلة)` : 'انقر الرقم مباشرة 👇'}
-                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowManualTablePicker(false)}
+                            className="text-[10px] text-slate-400 hover:text-white"
+                          >
+                            تم ✓
+                          </button>
                         </div>
 
-                        {/* أزرار سريعة لأرقام الطاولات ديناميكياً حسب عدد الطاولات المحدد من قبل صاحب المطعم */}
+                        {/* أزرار سريعة لأرقام الطاولات ديناميكياً */}
                         {(() => {
                           const count = restaurant.tablesCount && restaurant.tablesCount > 0 ? restaurant.tablesCount : 12;
                           const tableList = Array.from({ length: count }, (_, i) => String(i + 1));
                           return (
-                            <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5 mb-2.5 max-h-44 overflow-y-auto p-1.5 bg-slate-900/60 rounded-xl border border-slate-800">
+                            <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5 mb-2 max-h-44 overflow-y-auto p-1.5 bg-slate-900/60 rounded-xl border border-slate-800">
                               {tableList.map((num) => (
                                 <button
                                   key={num}
                                   type="button"
-                                  onClick={() => setOrderData({ ...orderData, tableNumber: num })}
-                                  className={`py-2 rounded-xl font-black text-xs transition-all ${
+                                  onClick={() => {
+                                    setOrderData({ ...orderData, tableNumber: num });
+                                    setShowManualTablePicker(false);
+                                  }}
+                                  className={`py-2 rounded-xl font-black text-xs transition-all cursor-pointer ${
                                     orderData.tableNumber === num
                                       ? 'text-white shadow-md scale-105 ring-2 ring-white/30'
                                       : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
@@ -659,14 +687,16 @@ export const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({
                           <span className="text-[11px] text-slate-400 shrink-0">أو رقم طاولة أخرى:</span>
                           <input
                             type="text"
-                            placeholder="مثلاً: 14، الصالة الخارجية، VIP..."
+                            placeholder="مثلاً: VIP، الصالة العائلية..."
                             value={orderData.tableNumber}
                             onChange={(e) => setOrderData({ ...orderData, tableNumber: e.target.value })}
                             className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-white text-xs font-bold text-center focus:outline-none focus:border-amber-500"
                           />
                         </div>
                       </div>
+                    )}
 
+                    <div className="bg-slate-950/90 p-3.5 rounded-2xl border border-slate-800 space-y-2 text-xs">
                       <div>
                         <label className="text-slate-300 block mb-1 font-medium">ملاحظات على الوجبات والمشروبات (اختياري):</label>
                         <input

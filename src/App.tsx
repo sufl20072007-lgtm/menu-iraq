@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import { Restaurant, Category, Product, CartItem } from './types';
 import { getSupabaseClient, getSupabaseConfig, saveSupabaseConfig } from './supabase/client';
+import { SuperAdminPanel } from './components/SuperAdminPanel';
 
 // مطاعم نموذجية لإظهار كيف يعمل نظام الـ Multi-tenant
 const SAMPLE_RESTAURANTS: Restaurant[] = [
@@ -152,7 +153,7 @@ const SAMPLE_PRODUCTS: Product[] = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'simulator' | 'guide'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'superadmin' | 'simulator' | 'guide'>('superadmin');
   
   // حالة الاتصال بقاعدة بيانات Supabase
   const [dbConfig, setDbConfig] = useState(getSupabaseConfig());
@@ -382,45 +383,68 @@ export default function App() {
         </div>
 
         {/* أشرطة التنقل على الهواتف - Mobile-Friendly Tabs */}
-        <div className="max-w-6xl mx-auto mt-3 flex items-center gap-2 border-t border-slate-800/80 pt-2">
+        <div className="max-w-6xl mx-auto mt-3 flex items-center gap-1 md:gap-2 border-t border-slate-800/80 pt-2 overflow-x-auto no-scrollbar">
+          <button
+            onClick={() => setActiveTab('superadmin')}
+            className={`py-2 px-3 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 transition-all shrink-0 ${
+              activeTab === 'superadmin'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <Shield className="w-4 h-4 text-purple-400" />
+            <span>لوحة المدير العام (Super Admin)</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('simulator')}
+            className={`py-2 px-3 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 transition-all shrink-0 ${
+              activeTab === 'simulator'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <Smartphone className="w-4 h-4 text-emerald-400" />
+            <span>تجربة المنيو الحي (محاكي)</span>
+          </button>
           <button
             onClick={() => setActiveTab('overview')}
-            className={`flex-1 py-2 px-3 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 transition-all ${
+            className={`py-2 px-3 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 transition-all shrink-0 ${
               activeTab === 'overview'
                 ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800'
             }`}
           >
             <Building2 className="w-4 h-4" />
-            <span>فكرة وهندسة المشروع</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('simulator')}
-            className={`flex-1 py-2 px-3 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 transition-all ${
-              activeTab === 'simulator'
-                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
-            }`}
-          >
-            <Smartphone className="w-4 h-4" />
-            <span>تجربة المنيو الحي (محاكي)</span>
+            <span>فكرة النظام</span>
           </button>
           <button
             onClick={() => setActiveTab('guide')}
-            className={`flex-1 py-2 px-3 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 transition-all ${
+            className={`py-2 px-3 rounded-lg text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 transition-all shrink-0 ${
               activeTab === 'guide'
                 ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800'
             }`}
           >
-            <CheckCircle className="w-4 h-4" />
-            <span>خطواتك الآن (مهم)</span>
+            <CheckCircle className="w-4 h-4 text-blue-400" />
+            <span>الخريطة والمراحل</span>
           </button>
         </div>
       </header>
 
       {/* المحتوى الرئيسي */}
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 space-y-6">
+        
+        {/* ===================== التبويب: لوحة المدير العام Super Admin ===================== */}
+        {activeTab === 'superadmin' && (
+          <SuperAdminPanel
+            restaurants={restaurantsList}
+            onRestaurantsChange={setRestaurantsList}
+            onPreviewRestaurant={(restaurant) => {
+              setSelectedRestaurant(restaurant);
+              setActiveTab('simulator');
+            }}
+          />
+        )}
         
         {/* ===================== التبويب 1: نظرة عامة وهندسة النظام ===================== */}
         {activeTab === 'overview' && (

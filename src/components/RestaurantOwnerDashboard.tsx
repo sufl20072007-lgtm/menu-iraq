@@ -28,10 +28,15 @@ import {
   DollarSign,
   Image as ImageIcon,
   Check,
-  Copy
+  Copy,
+  RefreshCw,
+  Sliders,
+  Printer,
+  Grid
 } from 'lucide-react';
 import { Restaurant, Category, Product } from '../types';
 import { getSupabaseClient } from '../supabase/client';
+import { QRCodeCard } from './QRCodeCard';
 
 interface RestaurantOwnerDashboardProps {
   restaurant: Restaurant;
@@ -55,8 +60,10 @@ export const RestaurantOwnerDashboard: React.FC<RestaurantOwnerDashboardProps> =
   const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'branding' | 'qrcode'>('products');
   const [qrTableNumber, setQrTableNumber] = useState<string>('1');
   const [copiedDeliveryUrl, setCopiedDeliveryUrl] = useState<boolean>(false);
+  const [renewSuccess, setRenewSuccess] = useState<boolean>(false);
+  const [isRenewing, setIsRenewing] = useState<boolean>(false);
   
-  // حالة تعديل معلومات المطعم
+  // حالة تعديل معلومات المطعم والكافيه
   const [formData, setFormData] = useState({
     name: restaurant.name,
     tagline: restaurant.tagline || '',
@@ -68,10 +75,12 @@ export const RestaurantOwnerDashboard: React.FC<RestaurantOwnerDashboardProps> =
     templateId: restaurant.templateId || 'modern-card',
     logoUrl: restaurant.logoUrl || '',
     coverUrl: restaurant.coverUrl || '',
+    tablesCount: restaurant.tablesCount || 12,
+    qrCodeToken: restaurant.qrCodeToken || 'v1',
   });
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // مزامنة النموذج تلقائياً عند تغيير المطعم أو ألوانه
+  // مزامنة النموذج تلقائياً عند تغيير المطعم أو ألوانه أو طاولاته
   React.useEffect(() => {
     setFormData({
       name: restaurant.name,
@@ -84,8 +93,63 @@ export const RestaurantOwnerDashboard: React.FC<RestaurantOwnerDashboardProps> =
       templateId: restaurant.templateId || 'modern-card',
       logoUrl: restaurant.logoUrl || '',
       coverUrl: restaurant.coverUrl || '',
+      tablesCount: restaurant.tablesCount || 12,
+      qrCodeToken: restaurant.qrCodeToken || 'v1',
     });
-  }, [restaurant.id, restaurant.themeColor, restaurant.templateId, restaurant.name]);
+  }, [
+    restaurant.id,
+    restaurant.themeColor,
+    restaurant.templateId,
+    restaurant.name,
+    restaurant.tablesCount,
+    restaurant.qrCodeToken,
+  ]);
+
+  // تعديل عدد طاولات الصالة فورياً
+  const handleTablesCountChange = (newCount: number) => {
+    const validCount = Math.max(1, Math.min(150, newCount));
+    setFormData((prev) => ({ ...prev, tablesCount: validCount }));
+    const updated: Restaurant = {
+      ...restaurant,
+      ...formData,
+      tablesCount: validCount,
+    };
+    onUpdateRestaurant(updated);
+
+    // إذا كان رقم الطاولة المحددة حالياً أكبر من العدد الجديد، نعيده إلى 1
+    if (parseInt(qrTableNumber, 10) > validCount) {
+      setQrTableNumber('1');
+    }
+
+    const client = getSupabaseClient();
+    if (client) {
+      client.from('restaurants').update({ tables_count: validCount }).eq('id', restaurant.id).then();
+    }
+  };
+
+  // تجديد الباركود فورياً وإنشاء باركود جديد بمفتاح وتشفير فريد
+  const handleRenewQrCode = () => {
+    setIsRenewing(true);
+    const newToken = 'qr_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 7);
+    
+    setTimeout(() => {
+      setFormData((prev) => ({ ...prev, qrCodeToken: newToken }));
+      const updated: Restaurant = {
+        ...restaurant,
+        ...formData,
+        qrCodeToken: newToken,
+      };
+      onUpdateRestaurant(updated);
+      setIsRenewing(false);
+      setRenewSuccess(true);
+      setTimeout(() => setRenewSuccess(false), 4000);
+
+      const client = getSupabaseClient();
+      if (client) {
+        client.from('restaurants').update({ qr_code_token: newToken }).eq('id', restaurant.id).then();
+      }
+    }, 400);
+  };
 
   // تغيير اللون فورياً مع تحديث الواجهة مباشرة وبدون تأخير
   const handleColorChange = (newColor: string) => {
@@ -161,6 +225,8 @@ export const RestaurantOwnerDashboard: React.FC<RestaurantOwnerDashboardProps> =
           template_id: formData.templateId,
           logo_url: formData.logoUrl,
           cover_url: formData.coverUrl,
+          tables_count: formData.tablesCount,
+          qr_code_token: formData.qrCodeToken,
         })
         .eq('id', restaurant.id);
     }
@@ -599,6 +665,68 @@ export const RestaurantOwnerDashboard: React.FC<RestaurantOwnerDashboardProps> =
             </div>
           </div>
 
+          {/* تحديد عدد طاولات الصالة */}
+          <div className="pt-2 border-t border-slate-800 bg-slate-950/70 p-4 rounded-2xl border border-slate-800/80 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <label className="text-white block font-bold text-xs flex items-center gap-1.5">
+                  <span className="text-base">🍽️</span>
+                  <span>عدد طاولات الصالة المخصصة لمطعمك/كافيهك:</span>
+                </label>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  حدد عدد الطاولات الفعلية الموجودة لديك (أكثر أو أقل من 12). ستظهر أزرارها للزبائن والباركودات تلقائياً.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => handleTablesCountChange((formData.tablesCount || 12) - 1)}
+                  className="w-8 h-8 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-sm border border-slate-700 flex items-center justify-center transition-all cursor-pointer"
+                  title="إنقاص طاولة"
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  min="1"
+                  max="150"
+                  value={formData.tablesCount || 12}
+                  onChange={(e) => handleTablesCountChange(parseInt(e.target.value, 10) || 1)}
+                  className="w-16 bg-slate-900 border border-amber-500/50 rounded-xl py-1.5 text-center font-mono font-black text-white text-sm focus:outline-none focus:border-amber-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleTablesCountChange((formData.tablesCount || 12) + 1)}
+                  className="w-8 h-8 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-sm border border-slate-700 flex items-center justify-center transition-all cursor-pointer"
+                  title="زيادة طاولة"
+                >
+                  +
+                </button>
+                <span className="text-xs font-bold text-amber-400">طاولة</span>
+              </div>
+            </div>
+
+            {/* اختصارات سريعة لاختيار عدد الطاولات */}
+            <div className="flex items-center gap-1.5 flex-wrap pt-1">
+              <span className="text-[11px] text-slate-400 ml-1">أعداد شائعة:</span>
+              {[4, 6, 8, 10, 12, 16, 20, 25, 30, 40, 50].map((count) => (
+                <button
+                  key={count}
+                  type="button"
+                  onClick={() => handleTablesCountChange(count)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    formData.tablesCount === count
+                      ? 'bg-amber-500 text-slate-950 font-black shadow-sm'
+                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  {count} طاولات
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* اختيار القالب */}
           <div className="pt-2 border-t border-slate-800">
             <label className="text-slate-300 block mb-2 font-bold">اختيار قالب تصميم المنيو:</label>
@@ -723,34 +851,137 @@ export const RestaurantOwnerDashboard: React.FC<RestaurantOwnerDashboardProps> =
       {/* ==================== تبويب 4: باركود الطاولات وروابط الدليفري ==================== */}
       {activeTab === 'qrcode' && (
         <div className="space-y-6 max-w-2xl mx-auto">
-          {/* البطاقة 1: باركود الطاولات الذكي (يلغي الدليفري تلقائياً عند مسحه) */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto">
-              <QrCode className="w-6 h-6" />
+          {/* إجابة واضحة وتأكيد حول تميز الباركود لكل مطعم */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-slate-900 border border-amber-500/30 space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">✨</span>
+              <h4 className="font-black text-sm text-amber-300">
+                نعم! كل مطعم وكافيه له باركود خاص وفريد به 100%
+              </h4>
             </div>
-            <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 text-xs font-bold border border-amber-500/20 mb-2">
-                <span>🍽️ باركود داخل الصالة</span>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              باركود <strong className="text-white">{restaurant.name}</strong> مشفر حصرياً برابطه الخاص (<code className="text-amber-300 font-mono">/{restaurant.slug}</code>). كل طاولة لها رقمها الخاص المدمج بالباركود، ولا يمكن لزبائن مطعم آخر الدخول لمنيو مطعمك أبداً.
+            </p>
+          </div>
+
+          {/* بطاقة التحكم بعدد الطاولات وتجديد الباركود */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+              <div>
+                <h4 className="font-bold text-sm text-white flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-amber-400" />
+                  <span>التحكم بعدد الطاولات وتجديد الباركود</span>
+                </h4>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  أنت صاحب القرار: حدد أي عدد طاولات تريده، وجدد الباركود بأي وقت
+                </p>
               </div>
-              <h4 className="font-black text-lg text-white">باركود QR لطاولات {restaurant.name}</h4>
-              <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-                عندما يمسح الزبون هذا الكود بكاميرا هاتفه، سيفتح المنيو على طاولته مباشرة <strong className="text-amber-400">ولن يظهر له خيار الدليفري نهائياً</strong> لتفادي أي ارتباك!
-              </p>
+
+              {/* زر تجديد الباركود / إنشاء باركود جديد */}
+              <button
+                type="button"
+                onClick={handleRenewQrCode}
+                disabled={isRenewing}
+                className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer ${
+                  renewSuccess
+                    ? 'bg-emerald-500 text-white shadow-emerald-500/30'
+                    : 'bg-amber-500 hover:bg-amber-400 text-slate-950 active:scale-95'
+                }`}
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRenewing ? 'animate-spin' : ''}`} />
+                <span>{renewSuccess ? '✓ تم تجديد الباركود بنجاح!' : 'تجديد الباركود / إنشاء كود جديد'}</span>
+              </button>
             </div>
 
-            {/* اختيار رقم الطاولة لتوليد باركود مخصص لها */}
-            <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2 text-right">
-              <label className="text-xs font-bold text-slate-300 block">اختر رقم الطاولة لتوليد باركود مخصص لها:</label>
+            {/* رسالة نجاح تجديد الباركود عند الضغط */}
+            {renewSuccess && (
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 animate-fadeIn">
+                <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>
+                  تم إنشاء باركود جديد بمفتاح تشفير حديث! الروابط القديمة تم تحديثها والباركود جاهز للطباعة الآن.
+                </span>
+              </div>
+            )}
+
+            {/* محدد عدد الطاولات */}
+            <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                  <span>🍽️ عدد طاولات الصالة الحالية:</span>
+                  <span className="text-amber-400 font-mono text-sm font-black">
+                    {formData.tablesCount || 12} طاولة
+                  </span>
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => handleTablesCountChange((formData.tablesCount || 12) - 1)}
+                    className="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs border border-slate-700 flex items-center justify-center"
+                    title="تقليل طاولة"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    max="150"
+                    value={formData.tablesCount || 12}
+                    onChange={(e) => handleTablesCountChange(parseInt(e.target.value, 10) || 1)}
+                    className="w-14 bg-slate-900 border border-slate-700 rounded-lg py-1 text-center font-mono font-bold text-white text-xs focus:outline-none focus:border-amber-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleTablesCountChange((formData.tablesCount || 12) + 1)}
+                    className="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs border border-slate-700 flex items-center justify-center"
+                    title="زيادة طاولة"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* أزرار سريعة للأعداد الشائعة */}
+              <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                <span className="text-[10px] text-slate-400 ml-1">تحديد سريع:</span>
+                {[4, 6, 8, 10, 12, 16, 20, 24, 30, 40, 50].map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => handleTablesCountChange(num)}
+                    className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition-all ${
+                      (formData.tablesCount || 12) === num
+                        ? 'bg-amber-500 text-slate-950 font-black'
+                        : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                    }`}
+                  >
+                    {num}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* شبكة اختيار رقم الطاولة لتوليد باركودها وطباعته */}
+            <div className="space-y-2 text-right">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-300 block">
+                  اختر طاولة لعرض باركودها وتحميل الستاند للطباعة:
+                </label>
+                <span className="text-[11px] text-amber-400 font-mono">
+                  طاولة مختارة: {qrTableNumber}
+                </span>
+              </div>
+
+              {/* أزرار الطاولات مولدة ديناميكياً حسب عدد الطاولات */}
               <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-1">
-                {['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'].map((num) => (
+                {Array.from({ length: formData.tablesCount || 12 }, (_, i) => String(i + 1)).map((num) => (
                   <button
                     key={num}
                     type="button"
                     onClick={() => setQrTableNumber(num)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 transition-all ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 transition-all cursor-pointer ${
                       qrTableNumber === num
-                        ? 'bg-amber-500 text-slate-950 shadow-md font-black'
-                        : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                        ? 'bg-amber-500 text-slate-950 shadow-md font-black scale-105'
+                        : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
                     }`}
                   >
                     طاولة {num}
@@ -759,37 +990,15 @@ export const RestaurantOwnerDashboard: React.FC<RestaurantOwnerDashboardProps> =
               </div>
             </div>
 
-            {/* الباركود بصرياً */}
-            <div className="bg-white p-4 rounded-2xl inline-block shadow-2xl border-4 border-slate-700">
-              <div className="w-48 h-48 bg-slate-950 flex flex-col items-center justify-center rounded-xl p-2 text-white">
-                <QrCode className="w-36 h-36 text-white" />
-                <div className="text-[10px] font-mono mt-1 text-amber-300 font-bold">
-                  menuiraq.com/{restaurant.slug}?mode=table&table={qrTableNumber}
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-2 flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
-              <button
-                onClick={() => alert(`تم تجهيز وتنزيل ستاند باركود طاولة (${qrTableNumber}) للطباعة!`)}
-                className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5"
-              >
-                <Download className="w-4 h-4" />
-                <span>تحميل باركود طاولة ({qrTableNumber}) للطباعة</span>
-              </button>
-              <button
-                onClick={() => {
-                  const url = `https://menuiraq.com/${restaurant.slug}?mode=table&table=${qrTableNumber}`;
-                  navigator.clipboard.writeText(url);
-                  setCopiedUrl(true);
-                  setTimeout(() => setCopiedUrl(false), 2000);
-                }}
-                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl border border-slate-700 flex items-center justify-center gap-1.5"
-              >
-                {copiedUrl ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                <span>نسخ رابط الطاولة</span>
-              </button>
-            </div>
+            {/* مكون الباركود الفعلي والحقيقي عالي الدقة القابل للمسح والتحميل */}
+            <QRCodeCard
+              url={`https://menuiraq.com/${restaurant.slug}?mode=table&table=${qrTableNumber}${formData.qrCodeToken ? `&v=${formData.qrCodeToken}` : ''}`}
+              restaurantName={restaurant.name}
+              tableNumber={qrTableNumber}
+              themeColor={formData.themeColor}
+              qrCodeToken={formData.qrCodeToken}
+              isTableMode={true}
+            />
           </div>
 
           {/* البطاقة 2: رابط السوشيال ميديا للدليفري (يلغي الطاولات تلقائياً) */}
@@ -816,12 +1025,13 @@ export const RestaurantOwnerDashboard: React.FC<RestaurantOwnerDashboardProps> =
                 https://menuiraq.com/{restaurant.slug}?mode=delivery
               </div>
               <button
+                type="button"
                 onClick={() => {
                   navigator.clipboard.writeText(`https://menuiraq.com/${restaurant.slug}?mode=delivery`);
                   setCopiedDeliveryUrl(true);
                   setTimeout(() => setCopiedDeliveryUrl(false), 2000);
                 }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all shadow-md shrink-0"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all shadow-md shrink-0 cursor-pointer"
               >
                 {copiedDeliveryUrl ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
                 <span>{copiedDeliveryUrl ? 'تم النسخ!' : 'نسخ رابط الدليفري'}</span>

@@ -30,6 +30,7 @@ import {
   X
 } from 'lucide-react';
 import { Restaurant, Category, Product, CartItem, CustomerOrderData } from '../types';
+import { QRCodeCard } from './QRCodeCard';
 
 interface CustomerMenuViewProps {
   restaurant: Restaurant;
@@ -622,29 +623,37 @@ export const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({
                           <label className="text-slate-200 font-bold text-xs flex items-center gap-1.5">
                             <span>اختر رقم طاولتك بلمسة واحدة:</span>
                           </label>
-                          <span className="text-[11px] text-slate-400">انقر الرقم مباشرة 👇</span>
+                          <span className="text-[11px] text-slate-400">
+                            {restaurant.tablesCount ? `(مجموع ${restaurant.tablesCount} طاولة مسجلة)` : 'انقر الرقم مباشرة 👇'}
+                          </span>
                         </div>
 
-                        {/* أزرار سريعة لأرقام الطاولات */}
-                        <div className="grid grid-cols-6 gap-1.5 mb-2.5">
-                          {['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'].map((num) => (
-                            <button
-                              key={num}
-                              type="button"
-                              onClick={() => setOrderData({ ...orderData, tableNumber: num })}
-                              className={`py-2 rounded-xl font-black text-xs transition-all ${
-                                orderData.tableNumber === num
-                                  ? 'text-white shadow-md scale-105 ring-2 ring-white/30'
-                                  : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-                              }`}
-                              style={{
-                                backgroundColor: orderData.tableNumber === num ? themeColor : undefined,
-                              }}
-                            >
-                              {num}
-                            </button>
-                          ))}
-                        </div>
+                        {/* أزرار سريعة لأرقام الطاولات ديناميكياً حسب عدد الطاولات المحدد من قبل صاحب المطعم */}
+                        {(() => {
+                          const count = restaurant.tablesCount && restaurant.tablesCount > 0 ? restaurant.tablesCount : 12;
+                          const tableList = Array.from({ length: count }, (_, i) => String(i + 1));
+                          return (
+                            <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5 mb-2.5 max-h-44 overflow-y-auto p-1.5 bg-slate-900/60 rounded-xl border border-slate-800">
+                              {tableList.map((num) => (
+                                <button
+                                  key={num}
+                                  type="button"
+                                  onClick={() => setOrderData({ ...orderData, tableNumber: num })}
+                                  className={`py-2 rounded-xl font-black text-xs transition-all ${
+                                    orderData.tableNumber === num
+                                      ? 'text-white shadow-md scale-105 ring-2 ring-white/30'
+                                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                                  }`}
+                                  style={{
+                                    backgroundColor: orderData.tableNumber === num ? themeColor : undefined,
+                                  }}
+                                >
+                                  {num}
+                                </button>
+                              ))}
+                            </div>
+                          );
+                        })()}
 
                         <div className="flex items-center gap-2">
                           <span className="text-[11px] text-slate-400 shrink-0">أو رقم طاولة أخرى:</span>
@@ -807,35 +816,25 @@ export const CustomerMenuView: React.FC<CustomerMenuViewProps> = ({
       {/* نافذة باركود QR للطاولات (QR Modal) */}
       {showQrModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-5 text-center space-y-4 shadow-2xl animate-fadeIn">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="font-bold text-sm text-white">باركود QR لطاولات {restaurant.name}</h3>
-              <button onClick={() => setShowQrModal(false)} className="text-slate-400 hover:text-white font-bold">
+              <h3 className="font-bold text-sm text-white flex items-center gap-2">
+                <span>🍽️ باركود طاولة {orderData.tableNumber || '1'}</span>
+                <span className="text-[11px] text-slate-400">({restaurant.name})</span>
+              </h3>
+              <button onClick={() => setShowQrModal(false)} className="text-slate-400 hover:text-white font-bold p-1">
                 ✕
               </button>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl inline-block shadow-2xl border-4 border-slate-700">
-              <div className="w-44 h-44 bg-slate-950 flex flex-col items-center justify-center rounded-xl p-2 text-white">
-                <QrCode className="w-32 h-32 text-white" />
-                <div className="text-[10px] font-mono mt-1 text-amber-300">menuiraq.com/{restaurant.slug}</div>
-              </div>
-            </div>
-
-            <p className="text-xs text-slate-400">
-              امسح الكود بكاميرا الموبايل لتجربة فتح المنيو مباشرة.
-            </p>
-
-            <button
-              onClick={() => {
-                alert('جاهز للطباعة واللصق على طاولات المطعم!');
-                setShowQrModal(false);
-              }}
-              className="w-full py-2.5 rounded-xl font-bold text-xs text-white shadow-md"
-              style={{ backgroundColor: themeColor }}
-            >
-              تحميل وحفظ الباركود
-            </button>
+            <QRCodeCard
+              url={`https://menuiraq.com/${restaurant.slug}?mode=table&table=${orderData.tableNumber || '1'}${restaurant.qrCodeToken ? `&v=${restaurant.qrCodeToken}` : ''}`}
+              restaurantName={restaurant.name}
+              tableNumber={orderData.tableNumber || '1'}
+              themeColor={themeColor}
+              qrCodeToken={restaurant.qrCodeToken}
+              isTableMode={true}
+            />
           </div>
         </div>
       )}

@@ -118,6 +118,8 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
       templateId: newRestTemplate,
       isActive: true,
       currency: 'د.ع',
+      tablesCount: 12,
+      qrCodeToken: 'qr_' + Date.now().toString(36),
       createdAt: new Date().toISOString(),
       logoUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=150',
       coverUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800',
@@ -139,6 +141,8 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({
               template_id: newRestaurant.templateId,
               is_active: true,
               currency: 'د.ع',
+              tables_count: 12,
+              qr_code_token: newRestaurant.qrCodeToken,
             },
           ])
           .select()

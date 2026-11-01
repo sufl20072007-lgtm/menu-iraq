@@ -20,6 +20,8 @@ export interface Restaurant {
   currency: string; // الافتراضي: د.ع (IQD)
   instagram?: string;
   openTime?: string;
+  tablesCount?: number; // عدد طاولات الصالة المخصصة لهذا المطعم/الكافيه (هوه يختار العدد)
+  qrCodeToken?: string; // رمز تشفير فريد لتجديد الباركود وتحديثه عند الحاجة
   createdAt: string;
 }
 

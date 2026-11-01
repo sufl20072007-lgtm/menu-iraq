@@ -666,7 +666,10 @@ export default function App() {
               
               {/* شاشة الهاتف (منيو الزبون) */}
               <div className="lg:col-span-7 flex justify-center">
-                <div className="w-full max-w-sm rounded-[36px] bg-slate-900 border-4 border-slate-700 shadow-2xl overflow-hidden flex flex-col min-h-[640px] max-h-[750px]">
+                <div
+                  className="w-full max-w-sm rounded-[36px] bg-slate-900 border-4 shadow-2xl overflow-hidden flex flex-col min-h-[640px] max-h-[750px] transition-all"
+                  style={{ borderColor: selectedRestaurant.themeColor || '#ea580c' }}
+                >
                   
                   {/* كاميرا الهاتف وحواف الشاشة */}
                   <div className="bg-slate-950 px-6 py-2 flex items-center justify-between text-[11px] text-slate-400 border-b border-slate-800">
@@ -678,54 +681,68 @@ export default function App() {
                   {/* غلاف المطعم ومعلوماته */}
                   <div className="relative h-32 bg-slate-800 overflow-hidden">
                     <img
-                      src={selectedRestaurant.coverUrl}
+                      src={selectedRestaurant.coverUrl || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800'}
                       alt="غلاف المطعم"
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent"></div>
                     <div className="absolute bottom-2 right-3 left-3 flex items-center gap-2.5">
                       <img
-                        src={selectedRestaurant.logoUrl}
+                        src={selectedRestaurant.logoUrl || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=150'}
                         alt="لوغو المطعم"
-                        className="w-12 h-12 rounded-xl border-2 border-white/20 object-cover shadow-md"
+                        className="w-12 h-12 rounded-xl border-2 border-white/30 object-cover shadow-md"
                       />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-black text-sm text-white truncate">{selectedRestaurant.name}</h4>
-                        <p className="text-[11px] text-amber-300 truncate">{selectedRestaurant.tagline}</p>
+                        <p
+                          className="text-[11px] font-bold truncate"
+                          style={{ color: selectedRestaurant.themeColor || '#ea580c' }}
+                        >
+                          {selectedRestaurant.tagline || 'أشهى المأكولات والمشروبات'}
+                        </p>
                       </div>
                     </div>
                   </div>
 
-                  {/* شريط الأقسام */}
+                  {/* شريط الأقسام الملون بالثيم */}
                   <div className="bg-slate-950 px-3 py-2 flex gap-2 overflow-x-auto no-scrollbar border-b border-slate-800">
                     <button
                       onClick={() => setSelectedCategory('all')}
-                      className={`text-xs px-3 py-1 rounded-full whitespace-nowrap font-medium transition-all ${
+                      className={`text-xs px-3 py-1 rounded-full whitespace-nowrap font-bold transition-all ${
                         selectedCategory === 'all'
-                          ? 'bg-amber-500 text-slate-950 font-bold'
-                          : 'bg-slate-800 text-slate-400'
+                          ? 'shadow-sm text-white'
+                          : 'bg-slate-800 text-slate-400 hover:text-white'
                       }`}
+                      style={{
+                        backgroundColor: selectedCategory === 'all' ? selectedRestaurant.themeColor : undefined,
+                      }}
                     >
                       الكل
                     </button>
                     {categoriesList
                       .filter((c) => c.restaurantId === selectedRestaurant.id || !c.restaurantId)
-                      .map((cat) => (
-                      <button
-                        key={cat.id}
-                        onClick={() => setSelectedCategory(cat.id)}
-                        className={`text-xs px-3 py-1 rounded-full whitespace-nowrap font-medium transition-all ${
-                          selectedCategory === cat.id
-                            ? 'bg-amber-500 text-slate-950 font-bold'
-                            : 'bg-slate-800 text-slate-400'
-                        }`}
-                      >
-                        {cat.name}
-                      </button>
-                    ))}
+                      .map((cat) => {
+                        const isCatSelected = selectedCategory === cat.id;
+                        return (
+                          <button
+                            key={cat.id}
+                            onClick={() => setSelectedCategory(cat.id)}
+                            className={`text-xs px-3 py-1 rounded-full whitespace-nowrap font-bold transition-all ${
+                              isCatSelected
+                                ? 'shadow-sm text-white'
+                                : 'bg-slate-800 text-slate-400 hover:text-white'
+                            }`}
+                            style={{
+                              backgroundColor: isCatSelected ? selectedRestaurant.themeColor : undefined,
+                            }}
+                          >
+                            {cat.name}
+                          </button>
+                        );
+                      })}
                   </div>
 
-                  {/* قائمة الوجبات (تتغير حسب القالب المختار) */}
+                  {/* قائمة الوجبات (تتغير حسب القالب واللون المختار) */}
                   <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-950">
                     {productsList
                       .filter(
@@ -733,55 +750,71 @@ export default function App() {
                           (p.restaurantId === selectedRestaurant.id || !p.restaurantId) &&
                           (selectedCategory === 'all' || p.categoryId === selectedCategory)
                       )
-                      .map((product) => (
-                      <div
-                        key={product.id}
-                        className={
-                          activeTemplate === 'modern-card'
-                            ? 'bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex gap-3 p-2.5 items-center hover:border-slate-700 transition-all'
-                            : 'bg-slate-900/60 border-b border-slate-800 p-2.5 flex justify-between items-center'
-                        }
-                      >
-                        {activeTemplate === 'modern-card' && product.imageUrl && (
-                          <img
-                            src={product.imageUrl}
-                            alt={product.name}
-                            className="w-16 h-16 rounded-lg object-cover shrink-0"
-                          />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <h5 className="font-bold text-xs text-white truncate">{product.name}</h5>
-                            {product.isPopular && (
-                              <span className="text-[9px] bg-red-500/20 text-red-300 px-1.5 py-0.2 rounded font-semibold">
-                                الأكثر طلباً
-                              </span>
+                      .map((product) => {
+                        const isModern = (selectedRestaurant.templateId || activeTemplate) === 'modern-card';
+                        return (
+                          <div
+                            key={product.id}
+                            className={
+                              isModern
+                                ? 'bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex gap-3 p-2.5 items-center hover:border-slate-700 transition-all'
+                                : 'bg-slate-900/60 border-b border-slate-800 p-2.5 flex justify-between items-center rounded-lg'
+                            }
+                          >
+                            {isModern && product.imageUrl && (
+                              <img
+                                src={product.imageUrl}
+                                alt={product.name}
+                                className="w-16 h-16 rounded-lg object-cover shrink-0"
+                              />
                             )}
-                          </div>
-                          <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">{product.description}</p>
-                          <div className="text-amber-400 font-bold text-xs mt-1">
-                            {product.price.toLocaleString()} {selectedRestaurant.currency}
-                          </div>
-                        </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <h5 className="font-bold text-xs text-white truncate">{product.name}</h5>
+                                {product.isPopular && (
+                                  <span
+                                    className="text-[9px] px-1.5 py-0.2 rounded font-bold text-white shadow-xs"
+                                    style={{ backgroundColor: selectedRestaurant.themeColor }}
+                                  >
+                                    الأكثر طلباً
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">{product.description}</p>
+                              <div
+                                className="font-black text-xs mt-1"
+                                style={{ color: selectedRestaurant.themeColor }}
+                              >
+                                {product.price.toLocaleString()} {selectedRestaurant.currency}
+                              </div>
+                            </div>
 
-                        <button
-                          onClick={() => addToCart(product)}
-                          className="w-8 h-8 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center justify-center shrink-0 shadow-sm transition-all"
-                          title="إضافة للسلة"
-                        >
-                          <Plus className="w-4 h-4 stroke-[3]" />
-                        </button>
-                      </div>
-                    ))}
+                            <button
+                              onClick={() => addToCart(product)}
+                              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-md transition-transform active:scale-90 text-white"
+                              style={{ backgroundColor: selectedRestaurant.themeColor }}
+                              title="إضافة للسلة"
+                            >
+                              <Plus className="w-4 h-4 stroke-[3]" />
+                            </button>
+                          </div>
+                        );
+                      })}
                   </div>
 
                   {/* الشريط السفلي داخل المنيو: السلة السريعة */}
                   <div className="bg-slate-900 p-3 border-t border-slate-800 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="relative">
-                        <ShoppingBag className="w-5 h-5 text-amber-400" />
+                        <ShoppingBag
+                          className="w-5 h-5"
+                          style={{ color: selectedRestaurant.themeColor }}
+                        />
                         {totalItemsCount > 0 && (
-                          <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-slate-950 text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center">
+                          <span
+                            className="absolute -top-1.5 -right-1.5 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-sm"
+                            style={{ backgroundColor: selectedRestaurant.themeColor }}
+                          >
                             {totalItemsCount}
                           </span>
                         )}
@@ -799,7 +832,8 @@ export default function App() {
                         const el = document.getElementById('order-summary');
                         el?.scrollIntoView({ behavior: 'smooth' });
                       }}
-                      className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-md shadow-emerald-500/20"
+                      className="text-white font-black text-xs px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-md transition-transform active:scale-95"
+                      style={{ backgroundColor: selectedRestaurant.themeColor }}
                     >
                       <Send className="w-3.5 h-3.5" />
                       <span>إتمام الطلب</span>

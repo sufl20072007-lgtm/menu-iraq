@@ -754,11 +754,11 @@ export default function App() {
             <div className="bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-900 border border-amber-500/30 rounded-2xl p-5 md:p-6 space-y-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
-                    أنت هنا الآن 📍 المرحلة 1 (الخطوة 1 من 1)
+                  <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                    أحسنت! 🎯 تم إنشاء المستودع بنجاح: menu-iraq
                   </span>
                   <h3 className="text-xl font-black text-white mt-2">
-                    حفظ مشروعك في GitHub لضمان ملكيتك الكاملة 100%
+                    المرحلة 1 - الخطوة 2: رفع ومزامنة الكود مع حسابك
                   </h3>
                 </div>
                 <div className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-amber-400">
@@ -766,7 +766,7 @@ export default function App() {
                 </div>
               </div>
               <p className="text-xs md:text-sm text-slate-300 leading-relaxed">
-                حتى تكون كل الأكواد ملكك بالكامل ولا تضيع منك أبداً، ومحفوظة باسمك على GitHub، نفّذ هذه الخطوة البسيطة من متصفح هاتفك الأندرويد.
+                المستودع تم ربطه محلياً (<code className="text-amber-400">https://github.com/sufl20072007-lgtm/menu-iraq.git</code>) وجهزنا كل ملفات المنصة. حتى نسمح للنظام برفع الملفات لحسابك، نحتاج رمز وصول سريع (Token) من GitHub.
               </p>
             </div>
 

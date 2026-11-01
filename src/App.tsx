@@ -31,9 +31,13 @@ import {
   Share2,
   Sliders,
   DollarSign,
-  Info
+  Info,
+  Server,
+  RefreshCw,
+  Key
 } from 'lucide-react';
 import { Restaurant, Category, Product, CartItem } from './types';
+import { getSupabaseClient, getSupabaseConfig, saveSupabaseConfig } from './supabase/client';
 
 // مطاعم نموذجية لإظهار كيف يعمل نظام الـ Multi-tenant
 const SAMPLE_RESTAURANTS: Restaurant[] = [
@@ -150,6 +154,19 @@ const SAMPLE_PRODUCTS: Product[] = [
 export default function App() {
   const [activeTab, setActiveTab] = useState<'overview' | 'simulator' | 'guide'>('overview');
   
+  // حالة الاتصال بقاعدة بيانات Supabase
+  const [dbConfig, setDbConfig] = useState(getSupabaseConfig());
+  const [inputUrl, setInputUrl] = useState(dbConfig.url);
+  const [inputAnonKey, setInputAnonKey] = useState(dbConfig.anonKey);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionMessage, setConnectionMessage] = useState<string | null>(null);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+
+  // قائمة المطاعم والأصناف
+  const [restaurantsList, setRestaurantsList] = useState<Restaurant[]>(SAMPLE_RESTAURANTS);
+  const [categoriesList, setCategoriesList] = useState<Category[]>(SAMPLE_CATEGORIES);
+  const [productsList, setProductsList] = useState<Product[]>(SAMPLE_PRODUCTS);
+
   // حالة المحاكي للمطعم النشط
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant>(SAMPLE_RESTAURANTS[0]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -162,6 +179,110 @@ export default function App() {
   const [customerAddress, setCustomerAddress] = useState('الكرادة - قرب ساحة كهرمانة');
   const [customerNotes, setCustomerNotes] = useState('الصمون مقسب وبدون بصل رجاءً');
   const [copiedText, setCopiedText] = useState<string | null>(null);
+
+  // محاولة جلب البيانات الحقيقية من Supabase عند توفر المفاتيح
+  const loadDataFromSupabase = async () => {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    try {
+      setIsConnecting(true);
+      const { data: dbRestaurants, error: rError } = await client
+        .from('restaurants')
+        .select('*')
+        .eq('is_active', true);
+
+      if (rError) throw rError;
+
+      if (dbRestaurants && dbRestaurants.length > 0) {
+        const formatted: Restaurant[] = dbRestaurants.map((r: any) => ({
+          id: r.id,
+          slug: r.slug,
+          name: r.name,
+          tagline: r.tagline || '',
+          description: r.description || '',
+          phoneWhatsapp: r.phone_whatsapp,
+          address: r.address || '',
+          city: r.city || 'بغداد',
+          themeColor: r.theme_color || '#ea580c',
+          templateId: r.template_id || 'modern-card',
+          isActive: r.is_active,
+          currency: r.currency || 'د.ع',
+          logoUrl: r.logo_url || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=150',
+          coverUrl: r.cover_url || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800',
+          createdAt: r.created_at,
+        }));
+        setRestaurantsList(formatted);
+        setSelectedRestaurant(formatted[0]);
+
+        // جلب الأقسام
+        const { data: dbCats } = await client
+          .from('categories')
+          .select('*')
+          .order('sort_order', { ascending: true });
+        
+        if (dbCats && dbCats.length > 0) {
+          const formattedCats: Category[] = dbCats.map((c: any) => ({
+            id: c.id,
+            restaurantId: c.restaurant_id,
+            name: c.name,
+            sortOrder: c.sort_order,
+          }));
+          setCategoriesList(formattedCats);
+        }
+
+        // جلب الوجبات
+        const { data: dbProds } = await client
+          .from('products')
+          .select('*')
+          .eq('is_available', true);
+
+        if (dbProds && dbProds.length > 0) {
+          const formattedProds: Product[] = dbProds.map((p: any) => ({
+            id: p.id,
+            restaurantId: p.restaurant_id,
+            categoryId: p.category_id,
+            name: p.name,
+            description: p.description || '',
+            price: Number(p.price) || 0,
+            imageUrl: p.image_url,
+            isAvailable: p.is_available,
+            isPopular: p.is_popular,
+          }));
+          setProductsList(formattedProds);
+          setCart([
+            { product: formattedProds[0], quantity: 1 }
+          ]);
+        }
+
+        setConnectionMessage('تم الاتصال بنجاح! تم تحميل المطاعم والوجبات من قاعدة بياناتك الحقيقية 🟢');
+      }
+    } catch (err: any) {
+      console.error('Supabase query error:', err);
+      setConnectionMessage(`تنبيه: ${err.message || 'حدث خطأ في جلب البيانات'}`);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (dbConfig.isConfigured) {
+      loadDataFromSupabase();
+    }
+  }, [dbConfig.isConfigured]);
+
+  const handleSaveConnection = () => {
+    if (!inputUrl.trim() || !inputAnonKey.trim()) {
+      alert('يرجى لصق كل من Project URL و anon key');
+      return;
+    }
+    saveSupabaseConfig(inputUrl, inputAnonKey);
+    setDbConfig(getSupabaseConfig());
+    setShowConfigModal(false);
+    setTimeout(() => {
+      loadDataFromSupabase();
+    }, 200);
+  };
 
   // حساب المجموع
   const totalAmount = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
@@ -239,16 +360,23 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              المرحلة 1: التأسيس
-            </span>
+            <button
+              onClick={() => setShowConfigModal(true)}
+              className={`text-xs px-2.5 py-1 rounded-full font-bold border flex items-center gap-1.5 transition-all ${
+                dbConfig.isConfigured
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+                  : 'bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
+              }`}
+            >
+              <Database className="w-3.5 h-3.5" />
+              <span>{dbConfig.isConfigured ? 'Supabase متصل 🟢' : 'ربط Supabase 🔗'}</span>
+            </button>
             <button
               onClick={() => setActiveTab('guide')}
               className="text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 shadow-sm"
             >
               <GitBranch className="w-3.5 h-3.5" />
-              <span>خطوة الحفظ (GitHub)</span>
+              <span>خطواتك</span>
             </button>
           </div>
         </div>
@@ -427,9 +555,16 @@ export default function App() {
               <div className="flex items-center gap-3">
                 <Store className="w-5 h-5 text-amber-400" />
                 <div>
-                  <span className="text-xs text-slate-400 block">جرّب تبديل المطعم لرؤية الـ Multi-Tenancy:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400 block">اختر المطعم لعرض المنيو:</span>
+                    {dbConfig.isConfigured && (
+                      <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.2 rounded font-bold">
+                        بيانات سحابية حية
+                      </span>
+                    )}
+                  </div>
                   <div className="flex gap-2 mt-1">
-                    {SAMPLE_RESTAURANTS.map((r) => (
+                    {restaurantsList.map((r) => (
                       <button
                         key={r.id}
                         onClick={() => setSelectedRestaurant(r)}
@@ -519,7 +654,9 @@ export default function App() {
                     >
                       الكل
                     </button>
-                    {SAMPLE_CATEGORIES.map((cat) => (
+                    {categoriesList
+                      .filter((c) => c.restaurantId === selectedRestaurant.id || !c.restaurantId)
+                      .map((cat) => (
                       <button
                         key={cat.id}
                         onClick={() => setSelectedCategory(cat.id)}
@@ -536,9 +673,13 @@ export default function App() {
 
                   {/* قائمة الوجبات (تتغير حسب القالب المختار) */}
                   <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-950">
-                    {SAMPLE_PRODUCTS.filter(
-                      (p) => selectedCategory === 'all' || p.categoryId === selectedCategory
-                    ).map((product) => (
+                    {productsList
+                      .filter(
+                        (p) =>
+                          (p.restaurantId === selectedRestaurant.id || !p.restaurantId) &&
+                          (selectedCategory === 'all' || p.categoryId === selectedCategory)
+                      )
+                      .map((product) => (
                       <div
                         key={product.id}
                         className={
@@ -918,6 +1059,86 @@ export default function App() {
         )}
 
       </main>
+
+      {/* نافذة إعداد مفاتيح Supabase */}
+      {showConfigModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-5 md:p-6 space-y-4 shadow-2xl animate-fadeIn">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Database className="w-5 h-5 text-amber-400" />
+                <h3 className="font-bold text-base text-white">ربط قاعدة بيانات Supabase الحقيقية</h3>
+              </div>
+              <button
+                onClick={() => setShowConfigModal(false)}
+                className="text-slate-400 hover:text-white text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              انسخ <strong className="text-amber-400">Project URL</strong> و <strong className="text-amber-400">anon public key</strong> من إعدادات مشروعك في Supabase (من صفحة Project Settings ➔ API):
+            </p>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="text-slate-400 block mb-1 font-bold">1. رابط المشروع (Project URL):</label>
+                <input
+                  type="text"
+                  placeholder="https://xxxxxxxx.supabase.co"
+                  value={inputUrl}
+                  onChange={(e) => setInputUrl(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-400 block mb-1 font-bold">2. المفتاح العام (anon public key):</label>
+                <input
+                  type="password"
+                  placeholder="eyJhbGciOi..."
+                  value={inputAnonKey}
+                  onChange={(e) => setInputAnonKey(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              {connectionMessage && (
+                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-amber-300 text-xs font-medium">
+                  {connectionMessage}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={handleSaveConnection}
+                disabled={isConnecting}
+                className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5"
+              >
+                {isConnecting ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>جاري الاتصال...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    <span>حفظ وتفعيل الاتصال</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setShowConfigModal(false)}
+                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs rounded-xl"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* التذييل - Footer */}
       <footer className="border-t border-slate-800/80 bg-slate-900/40 px-4 py-4 text-center text-xs text-slate-500">
